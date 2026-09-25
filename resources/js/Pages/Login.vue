@@ -12,6 +12,9 @@ const form = ref({
 });
 const submitting = ref(false);
 
+const urlParams = new URLSearchParams(window.location.search);
+const justRegistered = document.cookie.includes('registered') || window.location.href.includes('registered');
+
 function submit() {
     submitting.value = true;
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -38,7 +41,7 @@ function submit() {
     <div class="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div class="w-full max-w-sm bg-white rounded-xl border border-gray-200 shadow-sm p-6">
             <div class="flex items-center gap-3 mb-6">
-                <div class="w-10 h-10 rounded-lg bg-orange-600 text-white flex items-center justify-center font-bold">NB</div>
+                <div class="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold">NB</div>
                 <div>
                     <h1 class="text-base font-semibold text-gray-900">Nubiko Dashboard</h1>
                     <p class="text-xs text-gray-500">Masuk untuk melanjutkan</p>
@@ -67,8 +70,7 @@ function submit() {
             </form>
 
             <p class="text-xs text-gray-500 text-center mt-4">
-                Belum punya akun?
-                <a href="/register" class="text-indigo-600 hover:underline">Daftar di sini</a>
+                Belum punya akun? <a href="/register" class="text-indigo-600 font-medium">Daftar di sini</a>
             </p>
         </div>
     </div>

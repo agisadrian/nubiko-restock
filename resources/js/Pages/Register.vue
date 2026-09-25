@@ -13,16 +13,19 @@ const form = ref({
     password_confirmation: '',
 });
 const submitting = ref(false);
+const submitted = ref(false);
+
+function getCsrfToken(): string {
+    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+}
 
 function submit() {
     submitting.value = true;
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
     fetch('/register', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken,
+            'X-CSRF-TOKEN': getCsrfToken(),
         },
         body: JSON.stringify(form.value),
     }).then((res) => {
@@ -40,10 +43,10 @@ function submit() {
     <div class="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div class="w-full max-w-sm bg-white rounded-xl border border-gray-200 shadow-sm p-6">
             <div class="flex items-center gap-3 mb-6">
-                <div class="w-10 h-10 rounded-lg bg-orange-600 text-white flex items-center justify-center font-bold">NB</div>
+                <div class="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold">NB</div>
                 <div>
-                    <h1 class="text-base font-semibold text-gray-900">Nubiko Dashboard</h1>
-                    <p class="text-xs text-gray-500">Buat akun baru</p>
+                    <h1 class="text-base font-semibold text-gray-900">Daftar Akun</h1>
+                    <p class="text-xs text-gray-500">Akun perlu disetujui admin sebelum bisa login</p>
                 </div>
             </div>
 
@@ -64,23 +67,22 @@ function submit() {
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-xs text-gray-500">Password</label>
-                    <input type="password" v-model="form.password" required minlength="8"
+                    <input type="password" v-model="form.password" required minlength="6"
                         class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-xs text-gray-500">Konfirmasi Password</label>
-                    <input type="password" v-model="form.password_confirmation" required minlength="8"
+                    <input type="password" v-model="form.password_confirmation" required
                         class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
                 <button type="submit" :disabled="submitting"
                     class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2 transition">
-                    {{ submitting ? 'Memproses...' : 'Daftar' }}
+                    {{ submitting ? 'Mendaftar...' : 'Daftar' }}
                 </button>
             </form>
 
             <p class="text-xs text-gray-500 text-center mt-4">
-                Sudah punya akun?
-                <a href="/login" class="text-indigo-600 hover:underline">Masuk di sini</a>
+                Sudah punya akun? <a href="/login" class="text-indigo-600 font-medium">Login di sini</a>
             </p>
         </div>
     </div>

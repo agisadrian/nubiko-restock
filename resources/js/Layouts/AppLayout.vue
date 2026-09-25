@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { LayoutDashboard, PackagePlus, PackageMinus, Package, Warehouse, LogOut } from 'lucide-vue-next';
+import { ref, computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
+import { LayoutDashboard, PackagePlus, PackageMinus, Package, Warehouse, Users, LogOut } from 'lucide-vue-next';
+
+const page = usePage();
+const isAdmin = computed(() => (page.props.auth as any)?.user?.isAdmin ?? false);
 
 function getCsrfToken(): string {
     return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -8,13 +12,19 @@ function getCsrfToken(): string {
 
 const currentPath = ref(window.location.pathname);
 
-const menuItems = [
-    { label: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { label: 'Restock Masuk', path: '/restock', icon: PackagePlus },
-    { label: 'Stok Keluar', path: '/stok-keluar', icon: PackageMinus },
-    { label: 'Produk', path: '/produk', icon: Package },
-    { label: 'Warehouse', path: '/gudang', icon: Warehouse },
-];
+const menuItems = computed(() => {
+    const items = [
+        { label: 'Dashboard', path: '/', icon: LayoutDashboard },
+        { label: 'Restock Masuk', path: '/restock', icon: PackagePlus },
+        { label: 'Stok Keluar', path: '/stok-keluar', icon: PackageMinus },
+        { label: 'Produk', path: '/produk', icon: Package },
+        { label: 'Warehouse', path: '/gudang', icon: Warehouse },
+    ];
+    if (isAdmin.value) {
+        items.push({ label: 'Persetujuan User', path: '/users', icon: Users });
+    }
+    return items;
+});
 
 async function logout() {
     await fetch('/logout', {

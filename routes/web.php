@@ -7,12 +7,15 @@ use App\Http\Controllers\RestockController;
 use App\Http\Controllers\StockOutController;
 use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\UserController;
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout']);
+Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+Route::post('/register', [AuthController::class, 'register']);
 
 Route::middleware('auth')->group(function () {
     Route::get('/', function () {
@@ -35,7 +38,18 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('Warehouse');
     });
 
+    Route::get('/users', function () {
+    return Inertia::render('Users');
+})->middleware('admin');
+
     Route::prefix('api')->group(function () {
+        Route::middleware('admin')->group(function () {
+    Route::get('/users', [UserController::class, 'index']);
+    Route::patch('/users/{id}/approve', [UserController::class, 'approve']);
+    Route::patch('/users/{id}/reject', [UserController::class, 'reject']);
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+});
+
         Route::get('/restock', [RestockController::class, 'index']);
         Route::post('/restock', [RestockController::class, 'store']);
         Route::get('/restock/list-produk', [RestockController::class, 'listProduk']);
