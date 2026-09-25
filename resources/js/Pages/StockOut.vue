@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import AppLayout from '../Layouts/AppLayout.vue';
+
+const page = usePage();
+const isAdmin = computed(() => (page.props.auth as any)?.user?.isAdmin ?? false);
 
 interface StockOutItem {
     No: number;
@@ -30,6 +34,25 @@ const lastPage = ref(1);
 const total = ref(0);
 const searchQuery = ref('');
 
+const daftarProduk = ref<string[]>([]);
+const produkSearch = ref('');
+
+const filteredProduk = computed(() => {
+    if (!produkSearch.value) return daftarProduk.value;
+    const q = produkSearch.value.toLowerCase();
+    return daftarProduk.value.filter(p => p.toLowerCase().includes(q));
+});
+
+async function fetchDaftarProduk() {
+    try {
+        const res = await fetch('/api/restock/list-produk');
+        const json = await res.json();
+        daftarProduk.value = json.data;
+    } catch (e) {
+        console.error('Gagal memuat daftar produk', e);
+    }
+}
+
 const form = ref({
     tanggal_keluar: '',
     nama_produk: '',
@@ -38,24 +61,6 @@ const form = ref({
 });
 const submitting = ref(false);
 const fieldErrors = ref<Record<string, string[]>>({});
-
-// Daftar produk yang sudah ada di Restock, dipakai sebagai pilihan di form Stok Keluar
-const produkOptions = ref<string[]>([]);
-const loadingProduk = ref(false);
-
-async function fetchProdukOptions() {
-    loadingProduk.value = true;
-    try {
-        const res = await fetch('/api/restock/produk-list');
-        if (!res.ok) throw new Error('Gagal ambil daftar produk');
-        const json = await res.json();
-        produkOptions.value = json.data;
-    } catch (e) {
-        showToast('error', 'Gagal memuat daftar produk dari Restock.');
-    } finally {
-        loadingProduk.value = false;
-    }
-}
 
 const toasts = ref<Toast[]>([]);
 let toastIdCounter = 0;
@@ -180,7 +185,7 @@ async function handleImport(event: Event) {
 
 onMounted(() => {
     fetchData(1);
-    fetchProdukOptions();
+    fetchDaftarProduk();
 });
 </script>
 
@@ -197,19 +202,19 @@ onMounted(() => {
         </div>
 
         <div class="max-w-5xl mx-auto">
-           <div class="flex items-center justify-between gap-3 mb-6">
-    <div>
-        <h1 class="text-lg font-semibold text-gray-900">Stok Keluar</h1>
-        <p class="text-sm text-gray-500">Catat barang yang keluar dari gudang/toko</p>
-    </div>
-    <div>
-        <input ref="fileInput" type="file" accept=".csv,.xlsx,.xls" class="hidden" @change="handleImport" />
-        <button @click="fileInput?.click()" :disabled="importing"
-            class="bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-sm font-medium text-gray-700 rounded-lg px-4 py-2 transition">
-            {{ importing ? 'Mengimport...' : '📥 Import Excel/CSV' }}
-        </button>
-    </div>
-</div>
+            <div class="flex items-center justify-between gap-3 mb-6">
+                <div>
+                    <h1 class="text-lg font-semibold text-gray-900">Stok Keluar</h1>
+                    <p class="text-sm text-gray-500">Catat barang yang keluar dari gudang/toko</p>
+                </div>
+                <div>
+                    <input ref="fileInput" type="file" accept=".csv,.xlsx,.xls" class="hidden" @change="handleImport" />
+                    <button @click="fileInput?.click()" :disabled="importing"
+                        class="bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-sm font-medium text-gray-700 rounded-lg px-4 py-2 transition">
+                        {{ importing ? 'Mengimport...' : '📥 Import Excel/CSV' }}
+                    </button>
+                </div>
+            </div>
 
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
@@ -233,13 +238,15 @@ onMounted(() => {
                     </div>
                     <div class="flex flex-col gap-1">
                         <label class="text-xs text-gray-500">Nama Produk</label>
-                        <select v-model="form.nama_produk" required :disabled="loadingProduk"
-                            :class="['border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 bg-white disabled:opacity-50', fieldErrors.nama_produk ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-orange-500']">
-                            <option value="" disabled>{{ loadingProduk ? 'Memuat produk...' : 'Pilih produk dari Restock' }}</option>
-                            <option v-for="produk in produkOptions" :key="produk" :value="produk">{{ produk }}</option>
+                        <input type="text" v-model="produkSearch" placeholder="Ketik untuk cari produk..."
+                            class="border border-gray-300 rounded-lg px-3 py-1.5 text-xs mb-1 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                        <select v-model="form.nama_produk" required
+                            :class="['border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2', fieldErrors.nama_produk ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-orange-500']">
+                            <option value="" disabled>Pilih produk...</option>
+                            <option v-for="p in filteredProduk" :key="p" :value="p">{{ p }}</option>
                         </select>
-                        <p v-if="!loadingProduk && produkOptions.length === 0" class="text-xs text-gray-400">Belum ada produk di Restock. Tambahkan data Restock dulu.</p>
                         <p v-if="fieldErrors.nama_produk" class="text-xs text-red-600">{{ fieldErrors.nama_produk[0] }}</p>
+                        <p v-if="daftarProduk.length === 0" class="text-xs text-gray-400">Belum ada produk "Sudah Inbound" di Restock.</p>
                     </div>
                     <div class="flex flex-col gap-1">
                         <label class="text-xs text-gray-500">Qty</label>
@@ -290,7 +297,7 @@ onMounted(() => {
                                     <td class="px-3 py-2">{{ item.QTY }}</td>
                                     <td class="px-3 py-2 text-gray-500">{{ item.Keterangan || '-' }}</td>
                                     <td class="px-3 py-2">
-                                        <button @click="deleteItem(item)" class="text-xs px-2 py-1 border border-red-300 text-red-600 rounded-md hover:bg-red-50">Hapus</button>
+                                        <button v-if="isAdmin" @click="deleteItem(item)" class="text-xs px-2 py-1 border border-red-300 text-red-600 rounded-md hover:bg-red-50">Hapus</button>
                                     </td>
                                 </tr>
                                 <tr v-if="items.length === 0">

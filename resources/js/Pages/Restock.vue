@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import AppLayout from '../Layouts/AppLayout.vue';
+
+const page = usePage();
+const isAdmin = computed(() => (page.props.auth as any)?.user?.isAdmin ?? false);
 
 interface RestockItem {
     No: number;
@@ -200,6 +204,9 @@ const fileInput = ref<HTMLInputElement | null>(null);
 const showImportModal = ref(false);
 const previewRows = ref<PreviewRow[]>([]);
 const confirmingImport = ref(false);
+const importProgress = ref(0);
+const importPhase = ref<'idle' | 'importing' | 'done'>('idle');
+const importedCount = ref(0);
 
 const validRowsCount = computed(() => previewRows.value.filter(r => r.valid).length);
 const invalidRowsCount = computed(() => previewRows.value.filter(r => !r.valid).length);
@@ -230,10 +237,6 @@ async function handleImport(event: Event) {
         if (fileInput.value) fileInput.value.value = '';
     }
 }
-
-const importProgress = ref(0);
-const importPhase = ref<'idle' | 'importing' | 'done'>('idle');
-const importedCount = ref(0);
 
 async function confirmImport(onlyValid: boolean) {
     const rowsToImport = onlyValid ? previewRows.value.filter(r => r.valid) : previewRows.value;
@@ -440,7 +443,7 @@ onMounted(() => fetchData(1));
                                     </td>
                                     <td class="px-3 py-2 space-x-2">
                                         <button @click="toggleStatus(item)" class="text-xs px-2 py-1 border border-gray-300 rounded-md hover:bg-gray-100">Toggle</button>
-                                        <button @click="deleteItem(item)" class="text-xs px-2 py-1 border border-red-300 text-red-600 rounded-md hover:bg-red-50">Hapus</button>
+                                        <button v-if="isAdmin" @click="deleteItem(item)" class="text-xs px-2 py-1 border border-red-300 text-red-600 rounded-md hover:bg-red-50">Hapus</button>
                                     </td>
                                 </tr>
                                 <tr v-if="items.length === 0">
@@ -507,20 +510,20 @@ onMounted(() => fetchData(1));
                 </div>
 
                 <div v-if="importPhase === 'importing' || importPhase === 'done'" class="px-5 pb-3">
-    <div class="flex items-center justify-between text-xs text-gray-600 mb-1.5">
-        <span>{{ importPhase === 'done' ? 'Selesai!' : 'Mengimport data...' }}</span>
-        <span>{{ importedCount }} / {{ validRowsCount + (invalidRowsCount > 0 ? 0 : 0) }} ({{ importProgress }}%)</span>
-    </div>
-    <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-        <div
-            class="h-full rounded-full transition-all duration-300"
-            :class="importPhase === 'done' ? 'bg-emerald-500' : 'bg-indigo-500'"
-            :style="{ width: importProgress + '%' }"
-        ></div>
-    </div>
-</div>
+                    <div class="flex items-center justify-between text-xs text-gray-600 mb-1.5">
+                        <span>{{ importPhase === 'done' ? 'Selesai!' : 'Mengimport data...' }}</span>
+                        <span>{{ importedCount }} / {{ validRowsCount }} ({{ importProgress }}%)</span>
+                    </div>
+                    <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                            class="h-full rounded-full transition-all duration-300"
+                            :class="importPhase === 'done' ? 'bg-emerald-500' : 'bg-indigo-500'"
+                            :style="{ width: importProgress + '%' }"
+                        ></div>
+                    </div>
+                </div>
 
-                <div class="p-5 border-t border-gray-100 flex items-center justify-end gap-2">
+                <div v-if="importPhase === 'idle'" class="p-5 border-t border-gray-100 flex items-center justify-end gap-2">
                     <button @click="cancelImport" type="button"
                         class="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
                         Batal
