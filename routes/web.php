@@ -38,6 +38,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('api')->group(function () {
         Route::get('/restock', [RestockController::class, 'index']);
         Route::post('/restock', [RestockController::class, 'store']);
+        Route::get('/restock/list-produk', [RestockController::class, 'listProduk']);
         Route::patch('/restock/{id}/status', [RestockController::class, 'updateStatus']);
         Route::delete('/restock/{id}', [RestockController::class, 'destroy'])->middleware('admin');
         Route::post('/restock/import-preview', [RestockController::class, 'importPreview']);
@@ -48,7 +49,7 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/stock-out', [StockOutController::class, 'index']);
         Route::post('/stock-out', [StockOutController::class, 'store']);
-       Route::delete('/stock-out/{id}', [StockOutController::class, 'destroy'])->middleware('admin');
+        Route::delete('/stock-out/{id}', [StockOutController::class, 'destroy'])->middleware('admin');
         Route::get('/stock-out/chart-stats', [StockOutController::class, 'chartStats']);
         Route::post('/stock-out/import', [StockOutController::class, 'import']);
 
