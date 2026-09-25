@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import AppLayout from '../Layouts/AppLayout.vue';
 
 interface RestockItem {
     No: number;
     Bulan: string;
     'Tanggal Kirim': string;
-    'Kota Asal Gudang': string;
+    Warehouse: string;
     'Nama Produk': string;
     QTY: number;
     Status: string;
@@ -17,6 +17,16 @@ interface Toast {
     id: number;
     type: 'success' | 'error';
     message: string;
+}
+
+interface PreviewRow {
+    tanggal_kirim: string | null;
+    kota_asal_gudang: string;
+    nama_produk: string;
+    qty: number | null;
+    status: string | null;
+    errors: string[];
+    valid: boolean;
 }
 
 function getCsrfToken(): string {
@@ -186,31 +196,98 @@ async function deleteItem(item: RestockItem) {
 
 const importing = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
+
+const showImportModal = ref(false);
+const previewRows = ref<PreviewRow[]>([]);
+const confirmingImport = ref(false);
+
+const validRowsCount = computed(() => previewRows.value.filter(r => r.valid).length);
+const invalidRowsCount = computed(() => previewRows.value.filter(r => !r.valid).length);
+
 async function handleImport(event: Event) {
     const target = event.target as HTMLInputElement;
     const file = target.files?.[0];
     if (!file) return;
+
     importing.value = true;
     const formData = new FormData();
     formData.append('file', file);
+
     try {
-        const res = await fetch('/api/restock/import', {
+        const res = await fetch('/api/restock/import-preview', {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': getCsrfToken() },
             body: formData,
         });
-        if (!res.ok) {
-            const data = await res.json().catch(() => null);
-            throw new Error(data?.message || 'Import gagal');
-        }
-        showToast('success', 'Data berhasil diimport!');
-        await fetchData(1);
+        if (!res.ok) throw new Error('Gagal membaca file');
+        const json = await res.json();
+        previewRows.value = json.data;
+        showImportModal.value = true;
     } catch (e) {
-        showToast('error', 'Gagal import file. Cek format kolomnya ya.');
+        showToast('error', 'Gagal membaca file. Cek format kolomnya ya.');
     } finally {
         importing.value = false;
         if (fileInput.value) fileInput.value.value = '';
     }
+}
+
+const importProgress = ref(0);
+const importPhase = ref<'idle' | 'importing' | 'done'>('idle');
+const importedCount = ref(0);
+
+async function confirmImport(onlyValid: boolean) {
+    const rowsToImport = onlyValid ? previewRows.value.filter(r => r.valid) : previewRows.value;
+    if (rowsToImport.length === 0) {
+        showToast('error', 'Tidak ada data valid untuk diimport.');
+        return;
+    }
+
+    confirmingImport.value = true;
+    importPhase.value = 'importing';
+    importProgress.value = 0;
+    importedCount.value = 0;
+
+    const batchSize = 100;
+    const batches: typeof rowsToImport[] = [];
+    for (let i = 0; i < rowsToImport.length; i += batchSize) {
+        batches.push(rowsToImport.slice(i, i + batchSize));
+    }
+
+    try {
+        for (let i = 0; i < batches.length; i++) {
+            const res = await fetch('/api/restock/import-confirm', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
+                },
+                body: JSON.stringify({ rows: batches[i] }),
+            });
+            if (!res.ok) throw new Error('Import gagal di batch ' + (i + 1));
+
+            importedCount.value += batches[i].length;
+            importProgress.value = Math.round(((i + 1) / batches.length) * 100);
+        }
+
+        importPhase.value = 'done';
+        showToast('success', `${importedCount.value} data berhasil diimport!`);
+        setTimeout(() => {
+            showImportModal.value = false;
+            previewRows.value = [];
+            importPhase.value = 'idle';
+        }, 1200);
+        await fetchData(1);
+    } catch (e) {
+        showToast('error', `Gagal import. ${importedCount.value} data sempat masuk sebelum error.`);
+        importPhase.value = 'idle';
+    } finally {
+        confirmingImport.value = false;
+    }
+}
+
+function cancelImport() {
+    showImportModal.value = false;
+    previewRows.value = [];
 }
 
 onMounted(() => fetchData(1));
@@ -232,13 +309,13 @@ onMounted(() => fetchData(1));
             <div class="flex items-center justify-between gap-3 mb-6">
                 <div>
                     <h1 class="text-lg font-semibold text-gray-900">Restock Masuk</h1>
-                    <p class="text-sm text-gray-500">Kelola data pengiriman restock dari gudang</p>
+                    <p class="text-sm text-gray-500">Kelola data pengiriman restock dari warehouse</p>
                 </div>
                 <div class="flex items-center gap-2">
                     <input ref="fileInput" type="file" accept=".csv,.xlsx,.xls" class="hidden" @change="handleImport" />
                     <button @click="fileInput?.click()" :disabled="importing"
                         class="bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-sm font-medium text-gray-700 rounded-lg px-4 py-2 transition">
-                        {{ importing ? 'Mengimport...' : '📥 Import Excel/CSV' }}
+                        {{ importing ? 'Membaca file...' : '📥 Import Excel/CSV' }}
                     </button>
                 </div>
             </div>
@@ -272,7 +349,7 @@ onMounted(() => fetchData(1));
                         <p v-if="fieldErrors.tanggal_kirim" class="text-xs text-red-600">{{ fieldErrors.tanggal_kirim[0] }}</p>
                     </div>
                     <div class="flex flex-col gap-1">
-                        <label class="text-xs text-gray-500">Kota Asal Gudang</label>
+                        <label class="text-xs text-gray-500">Warehouse</label>
                         <input type="text" v-model="form.kota_asal_gudang" required placeholder="Bandung"
                             :class="['border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2', fieldErrors.kota_asal_gudang ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-indigo-500']" />
                         <p v-if="fieldErrors.kota_asal_gudang" class="text-xs text-red-600">{{ fieldErrors.kota_asal_gudang[0] }}</p>
@@ -307,7 +384,7 @@ onMounted(() => fetchData(1));
                 <div class="flex flex-col gap-3 mb-4">
                     <h2 class="text-sm font-semibold text-gray-900">Daftar Restock</h2>
                     <div class="flex flex-wrap gap-2 items-center">
-                        <input v-model="searchQuery" type="text" placeholder="Cari nama produk / kota..."
+                        <input v-model="searchQuery" type="text" placeholder="Cari nama produk / warehouse..."
                             class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                         <select v-model="statusFilter" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             <option value="">Semua Status</option>
@@ -341,7 +418,7 @@ onMounted(() => fetchData(1));
                                     <th class="text-left px-3 py-2 font-semibold">No</th>
                                     <th class="text-left px-3 py-2 font-semibold">Bulan</th>
                                     <th class="text-left px-3 py-2 font-semibold">Tanggal Kirim</th>
-                                    <th class="text-left px-3 py-2 font-semibold">Kota Asal</th>
+                                    <th class="text-left px-3 py-2 font-semibold">Warehouse</th>
                                     <th class="text-left px-3 py-2 font-semibold">Nama Produk</th>
                                     <th class="text-left px-3 py-2 font-semibold">Qty</th>
                                     <th class="text-left px-3 py-2 font-semibold">Status</th>
@@ -353,7 +430,7 @@ onMounted(() => fetchData(1));
                                     <td class="px-3 py-2">{{ item.No }}</td>
                                     <td class="px-3 py-2">{{ item.Bulan }}</td>
                                     <td class="px-3 py-2">{{ item['Tanggal Kirim'] }}</td>
-                                    <td class="px-3 py-2">{{ item['Kota Asal Gudang'] }}</td>
+                                    <td class="px-3 py-2">{{ item.Warehouse }}</td>
                                     <td class="px-3 py-2">{{ item['Nama Produk'] }}</td>
                                     <td class="px-3 py-2">{{ item.QTY }}</td>
                                     <td class="px-3 py-2">
@@ -383,6 +460,80 @@ onMounted(() => fetchData(1));
                         </div>
                     </div>
                 </template>
+            </div>
+        </div>
+
+        <div v-if="showImportModal" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-lg w-full max-w-3xl max-h-[85vh] flex flex-col">
+                <div class="p-5 border-b border-gray-100">
+                    <h2 class="text-base font-semibold text-gray-900">Preview Import</h2>
+                    <p class="text-sm text-gray-500 mt-1">
+                        <span class="text-emerald-600 font-medium">{{ validRowsCount }} baris valid</span>
+                        <span v-if="invalidRowsCount > 0" class="text-red-600 font-medium"> · {{ invalidRowsCount }} baris bermasalah</span>
+                    </p>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-5">
+                    <div class="overflow-x-auto rounded-lg border border-gray-200">
+                        <table class="w-full text-xs">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-600">
+                                    <th class="text-left px-2 py-2 font-semibold">#</th>
+                                    <th class="text-left px-2 py-2 font-semibold">Tanggal</th>
+                                    <th class="text-left px-2 py-2 font-semibold">Warehouse</th>
+                                    <th class="text-left px-2 py-2 font-semibold">Produk</th>
+                                    <th class="text-left px-2 py-2 font-semibold">Qty</th>
+                                    <th class="text-left px-2 py-2 font-semibold">Status</th>
+                                    <th class="text-left px-2 py-2 font-semibold">Keterangan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(row, idx) in previewRows" :key="idx"
+                                    :class="row.valid ? '' : 'bg-red-50'" class="border-t border-gray-100">
+                                    <td class="px-2 py-1.5">{{ idx + 1 }}</td>
+                                    <td class="px-2 py-1.5">{{ row.tanggal_kirim || '-' }}</td>
+                                    <td class="px-2 py-1.5">{{ row.kota_asal_gudang || '-' }}</td>
+                                    <td class="px-2 py-1.5">{{ row.nama_produk || '-' }}</td>
+                                    <td class="px-2 py-1.5">{{ row.qty ?? '-' }}</td>
+                                    <td class="px-2 py-1.5">{{ row.status || '-' }}</td>
+                                    <td class="px-2 py-1.5">
+                                        <span v-if="row.valid" class="text-emerald-600">✓ Valid</span>
+                                        <span v-else class="text-red-600">{{ row.errors.join(', ') }}</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div v-if="importPhase === 'importing' || importPhase === 'done'" class="px-5 pb-3">
+    <div class="flex items-center justify-between text-xs text-gray-600 mb-1.5">
+        <span>{{ importPhase === 'done' ? 'Selesai!' : 'Mengimport data...' }}</span>
+        <span>{{ importedCount }} / {{ validRowsCount + (invalidRowsCount > 0 ? 0 : 0) }} ({{ importProgress }}%)</span>
+    </div>
+    <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div
+            class="h-full rounded-full transition-all duration-300"
+            :class="importPhase === 'done' ? 'bg-emerald-500' : 'bg-indigo-500'"
+            :style="{ width: importProgress + '%' }"
+        ></div>
+    </div>
+</div>
+
+                <div class="p-5 border-t border-gray-100 flex items-center justify-end gap-2">
+                    <button @click="cancelImport" type="button"
+                        class="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Batal
+                    </button>
+                    <button v-if="invalidRowsCount > 0" @click="confirmImport(true)" :disabled="confirmingImport || validRowsCount === 0" type="button"
+                        class="px-4 py-2 text-sm font-medium text-white bg-amber-500 rounded-lg hover:bg-amber-600 disabled:opacity-50">
+                        Import {{ validRowsCount }} yang Valid Saja
+                    </button>
+                    <button v-else @click="confirmImport(false)" :disabled="confirmingImport" type="button"
+                        class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+                        {{ confirmingImport ? 'Mengimport...' : `Import ${validRowsCount} Data` }}
+                    </button>
+                </div>
             </div>
         </div>
     </AppLayout>

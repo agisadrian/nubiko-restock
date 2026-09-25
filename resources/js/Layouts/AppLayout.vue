@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { LayoutDashboard, PackagePlus, PackageMinus, Package, LogOut } from 'lucide-vue-next';
+import { LayoutDashboard, PackagePlus, PackageMinus, Package, Warehouse, LogOut } from 'lucide-vue-next';
 
 function getCsrfToken(): string {
     return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -13,6 +13,7 @@ const menuItems = [
     { label: 'Restock Masuk', path: '/restock', icon: PackagePlus },
     { label: 'Stok Keluar', path: '/stok-keluar', icon: PackageMinus },
     { label: 'Produk', path: '/produk', icon: Package },
+    { label: 'Warehouse', path: '/gudang', icon: Warehouse },
 ];
 
 async function logout() {

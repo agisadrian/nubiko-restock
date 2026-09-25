@@ -216,7 +216,7 @@ const totalQtyAllKota = computed(() => byKota.value.reduce((sum, k) => sum + k.t
 
             <!-- Donut chart -->
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h2 class="text-sm font-semibold text-gray-900 mb-4">Qty per Kota Asal Gudang</h2>
+               <h2 class="text-sm font-semibold text-gray-900 mb-4">Qty per Warehouse</h2>
                 <div class="h-56 relative">
                     <p v-if="loading" class="text-sm text-gray-400 text-center pt-20">Memuat...</p>
                     <p v-else-if="byKota.length === 0" class="text-sm text-gray-400 text-center pt-20">Tidak ada data.</p>

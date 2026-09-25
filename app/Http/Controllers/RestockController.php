@@ -8,6 +8,89 @@ use Carbon\Carbon;
 
 class RestockController extends Controller
 {
+    public function importPreview(Request $request)
+{
+    $request->validate([
+        'file' => 'required|mimes:xlsx,csv,xls|max:5120',
+    ]);
+
+    $rows = \Maatwebsite\Excel\Facades\Excel::toArray([], $request->file('file'))[0];
+    $headers = array_map(fn($h) => strtolower(trim(str_replace(' ', '_', (string) $h))), array_shift($rows));
+
+    $preview = [];
+    foreach ($rows as $row) {
+        if (count(array_filter($row, fn($v) => $v !== null && $v !== '')) === 0) {
+            continue; // lewati baris yang beneran kosong total
+        }
+
+        $assoc = array_combine($headers, array_pad($row, count($headers), null));
+
+        $tanggalRaw = $assoc['tanggal_kirim'] ?? null;
+        $kota = trim((string) ($assoc['kota_asal_gudang'] ?? ''));
+        $nama = trim((string) ($assoc['nama_produk'] ?? ''));
+        $qty = $assoc['qty'] ?? null;
+        $statusRaw = trim((string) ($assoc['status'] ?? ''));
+
+        // Normalisasi tanggal
+        $tanggalFormatted = null;
+        if (is_numeric($tanggalRaw)) {
+            try {
+                $tanggalFormatted = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($tanggalRaw)->format('Y-m-d');
+            } catch (\Exception $e) {}
+        } elseif (!empty($tanggalRaw)) {
+            try {
+                $tanggalFormatted = \Carbon\Carbon::parse($tanggalRaw)->format('Y-m-d');
+            } catch (\Exception $e) {}
+        }
+
+        // Normalisasi status
+        $statusNormalized = null;
+        $statusLower = strtolower($statusRaw);
+        if ($statusLower === 'sudah' || $statusLower === 'sudah inbound') {
+            $statusNormalized = 'sudah';
+        } elseif ($statusLower === 'belum' || $statusLower === 'belum inbound') {
+            $statusNormalized = 'belum';
+        }
+
+        $errors = [];
+        if (empty($tanggalFormatted)) $errors[] = 'Tanggal Kirim kosong/tidak valid';
+        if (empty($kota)) $errors[] = 'Warehouse kosong';
+        if (empty($nama)) $errors[] = 'Nama Produk kosong';
+        if ($qty === null || $qty === '' || !is_numeric($qty)) $errors[] = 'Qty kosong/tidak valid';
+        if (empty($statusNormalized)) $errors[] = 'Status kosong/tidak dikenali';
+
+        $preview[] = [
+            'tanggal_kirim' => $tanggalFormatted,
+            'kota_asal_gudang' => $kota,
+            'nama_produk' => $nama,
+            'qty' => is_numeric($qty) ? (int) $qty : null,
+            'status' => $statusNormalized,
+            'errors' => $errors,
+            'valid' => count($errors) === 0,
+        ];
+    }
+
+    return response()->json(['data' => $preview]);
+}
+
+public function importConfirm(Request $request)
+{
+    $validated = $request->validate([
+        'rows' => 'required|array|min:1',
+        'rows.*.tanggal_kirim' => 'required|date',
+        'rows.*.kota_asal_gudang' => 'required|string',
+        'rows.*.nama_produk' => 'required|string',
+        'rows.*.qty' => 'required|integer|min:1',
+        'rows.*.status' => 'required|in:sudah,belum',
+    ]);
+
+    foreach ($validated['rows'] as $row) {
+        Restock::create($row);
+    }
+
+    return response()->json(['message' => 'Import berhasil', 'count' => count($validated['rows'])]);
+}
+
     public function index(Request $request)
 {
     $query = Restock::query();
@@ -55,7 +138,7 @@ $stats = [
             'No' => $globalNo,
             'Bulan' => Carbon::parse($item->tanggal_kirim)->translatedFormat('F'),
             'Tanggal Kirim' => $item->tanggal_kirim->format('Y-m-d'),
-            'Kota Asal Gudang' => $item->kota_asal_gudang,
+            'Warehouse' => $item->kota_asal_gudang,
             'Nama Produk' => $item->nama_produk,
             'QTY' => $item->qty,
             'Status' => $item->status === 'sudah' ? 'Sudah Inbound' : 'Belum Inbound',
