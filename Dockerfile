@@ -12,7 +12,7 @@ FROM php:8.3-cli-alpine
 
 RUN apk add --no-cache \
         git unzip libzip-dev libpng-dev libjpeg-turbo-dev freetype-dev \
-        icu-dev oniguruma-dev sqlite-dev postgresql-dev \
+        icu-dev oniguruma-dev sqlite-dev postgresql-dev libxml2-dev \
     && docker-php-ext-configure gd --with-jpeg --with-freetype \
     && docker-php-ext-install -j$(nproc) \
         pdo pdo_mysql pdo_pgsql pdo_sqlite \
