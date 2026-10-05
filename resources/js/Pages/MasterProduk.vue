@@ -140,6 +140,28 @@ function formatRupiah(value: string) {
     return 'Rp' + parseFloat(value).toLocaleString('id-ID');
 }
 
+    const generating = ref(false);
+
+async function generateFromRestock() {
+    if (!confirm('Generate produk dari data Restock yang sudah ada? Ini akan menambah produk baru untuk nama yang belum terdaftar.')) return;
+
+    generating.value = true;
+    try {
+        const res = await fetch('/api/products/generate-from-restock', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': getCsrfToken() },
+        });
+        if (!res.ok) throw new Error();
+        const json = await res.json();
+        showToast('success', json.message);
+        await fetchProducts();
+    } catch (e) {
+        showToast('error', 'Gagal generate produk.');
+    } finally {
+        generating.value = false;
+    }
+}
+
 onMounted(fetchProducts);
 </script>
 
@@ -156,10 +178,16 @@ onMounted(fetchProducts);
         </div>
 
         <div class="max-w-5xl mx-auto">
-            <div class="mb-6">
-                <h1 class="text-lg font-semibold text-gray-900">Master Produk</h1>
-                <p class="text-sm text-gray-500">Kelola SKU, kategori, harga, dan ambang stok minimum</p>
-            </div>
+            <div class="flex items-center justify-between gap-3 mb-6">
+    <div>
+        <h1 class="text-lg font-semibold text-gray-900">Master Produk</h1>
+        <p class="text-sm text-gray-500">Kelola SKU, kategori, harga, dan ambang stok minimum</p>
+    </div>
+    <button @click="generateFromRestock" :disabled="generating"
+        class="bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-sm font-medium text-gray-700 rounded-lg px-4 py-2 transition">
+        {{ generating ? 'Memproses...' : '⚡ Generate dari Data Restock' }}
+    </button>
+</div>
 
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
                 <h2 class="text-sm font-semibold text-gray-900 mb-4">{{ editingId ? 'Edit Produk' : 'Tambah Produk Baru' }}</h2>

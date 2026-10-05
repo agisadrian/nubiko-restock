@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Restock;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -61,5 +62,36 @@ class ProductController extends Controller
         Product::findOrFail($id)->delete();
 
         return response()->json(['message' => 'Produk berhasil dihapus']);
+    }
+
+    public function generateFromRestock()
+    {
+        $existingNames = Product::pluck('nama_produk')->toArray();
+
+        $namaProdukRestock = Restock::select('nama_produk')
+            ->distinct()
+            ->pluck('nama_produk');
+
+        $toCreate = $namaProdukRestock->diff($existingNames);
+
+        $lastNumber = Product::where('sku', 'like', 'AUTO-%')
+            ->get()
+            ->map(fn($p) => (int) str_replace('AUTO-', '', $p->sku))
+            ->max() ?? 0;
+
+        $created = 0;
+        foreach ($toCreate as $nama) {
+            $lastNumber++;
+            Product::create([
+                'sku' => 'AUTO-' . str_pad($lastNumber, 4, '0', STR_PAD_LEFT),
+                'nama_produk' => $nama,
+                'kategori' => null,
+                'harga' => 0,
+                'stok_minimum' => 10,
+            ]);
+            $created++;
+        }
+
+        return response()->json(['message' => "Berhasil generate {$created} produk baru", 'count' => $created]);
     }
 }
