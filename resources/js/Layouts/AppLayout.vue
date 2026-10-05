@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
-import { LayoutDashboard, PackagePlus, PackageMinus, Package, Warehouse, Users, LogOut } from 'lucide-vue-next';
-
+import { LayoutDashboard, PackagePlus, PackageMinus, Package, Warehouse, Users, Tags, LogOut } from 'lucide-vue-next';
 const page = usePage();
 const isAdmin = computed(() => (page.props.auth as any)?.user?.isAdmin ?? false);
 
@@ -19,6 +18,7 @@ const menuItems = computed(() => {
         { label: 'Stok Keluar', path: '/stok-keluar', icon: PackageMinus },
         { label: 'Produk', path: '/produk', icon: Package },
         { label: 'Warehouse', path: '/gudang', icon: Warehouse },
+        { label: 'Master Produk', path: '/master-produk', icon: Tags },
     ];
     if (isAdmin.value) {
         items.push({ label: 'Persetujuan User', path: '/users', icon: Users });
