@@ -65,33 +65,41 @@ class ProductController extends Controller
     }
 
     public function generateFromRestock()
-    {
-        $existingNames = Product::pluck('nama_produk')->toArray();
+{
+    $existingNames = Product::pluck('nama_produk')->toArray();
 
-        $namaProdukRestock = Restock::select('nama_produk')
-            ->distinct()
-            ->pluck('nama_produk');
+    $namaProdukRestock = Restock::select('nama_produk')
+        ->distinct()
+        ->pluck('nama_produk');
 
-        $toCreate = $namaProdukRestock->diff($existingNames);
+    $toCreate = $namaProdukRestock->diff($existingNames)->values();
 
-        $lastNumber = Product::where('sku', 'like', 'AUTO-%')
-            ->get()
-            ->map(fn($p) => (int) str_replace('AUTO-', '', $p->sku))
-            ->max() ?? 0;
+    $lastNumber = Product::where('sku', 'like', 'AUTO-%')
+        ->get()
+        ->map(fn($p) => (int) str_replace('AUTO-', '', $p->sku))
+        ->max() ?? 0;
 
-        $created = 0;
-        foreach ($toCreate as $nama) {
-            $lastNumber++;
-            Product::create([
-                'sku' => 'AUTO-' . str_pad($lastNumber, 4, '0', STR_PAD_LEFT),
-                'nama_produk' => $nama,
-                'kategori' => null,
-                'harga' => 0,
-                'stok_minimum' => 10,
-            ]);
-            $created++;
-        }
-
-        return response()->json(['message' => "Berhasil generate {$created} produk baru", 'count' => $created]);
+    $rows = [];
+    $now = now();
+    foreach ($toCreate as $nama) {
+        $lastNumber++;
+        $rows[] = [
+            'sku' => 'AUTO-' . str_pad($lastNumber, 4, '0', STR_PAD_LEFT),
+            'nama_produk' => $nama,
+            'kategori' => null,
+            'harga' => 0,
+            'stok_minimum' => 10,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
     }
+
+    if (count($rows) > 0) {
+        foreach (array_chunk($rows, 100) as $chunk) {
+            Product::insert($chunk);
+        }
+    }
+
+    return response()->json(['message' => 'Berhasil generate ' . count($rows) . ' produk baru', 'count' => count($rows)]);
+}
 }
