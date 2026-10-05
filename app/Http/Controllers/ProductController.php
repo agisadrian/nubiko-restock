@@ -102,4 +102,10 @@ class ProductController extends Controller
 
     return response()->json(['message' => 'Berhasil generate ' . count($rows) . ' produk baru', 'count' => count($rows)]);
 }
+
+public function listNames()
+{
+    $names = Product::orderBy('nama_produk')->pluck('nama_produk');
+    return response()->json(['data' => $names]);
+}
 }

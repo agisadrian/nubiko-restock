@@ -293,7 +293,29 @@ function cancelImport() {
     previewRows.value = [];
 }
 
-onMounted(() => fetchData(1));
+const daftarProduk = ref<string[]>([]);
+const produkSearch = ref('');
+
+const filteredProduk = computed(() => {
+    if (!produkSearch.value) return daftarProduk.value;
+    const q = produkSearch.value.toLowerCase();
+    return daftarProduk.value.filter(p => p.toLowerCase().includes(q));
+});
+
+async function fetchDaftarProduk() {
+    try {
+        const res = await fetch('/api/products/list-names');
+        const json = await res.json();
+        daftarProduk.value = json.data;
+    } catch (e) {
+        console.error('Gagal memuat daftar produk', e);
+    }
+}
+
+onMounted(() => {
+    fetchData(1);
+    fetchDaftarProduk();
+});
 </script>
 
 <template>
@@ -357,10 +379,15 @@ onMounted(() => fetchData(1));
                             :class="['border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2', fieldErrors.kota_asal_gudang ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-indigo-500']" />
                         <p v-if="fieldErrors.kota_asal_gudang" class="text-xs text-red-600">{{ fieldErrors.kota_asal_gudang[0] }}</p>
                     </div>
-                    <div class="flex flex-col gap-1">
+                   <div class="flex flex-col gap-1">
                         <label class="text-xs text-gray-500">Nama Produk</label>
-                        <input type="text" v-model="form.nama_produk" required placeholder="Nubiko Serum 30ml"
-                            :class="['border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2', fieldErrors.nama_produk ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-indigo-500']" />
+                        <input type="text" v-model="produkSearch" placeholder="Ketik untuk cari..."
+                            class="border border-gray-300 rounded-lg px-3 py-1.5 text-xs mb-1 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        <select v-model="form.nama_produk" required
+                            :class="['border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2', fieldErrors.nama_produk ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-indigo-500']">
+                            <option value="" disabled>Pilih produk...</option>
+                            <option v-for="p in filteredProduk" :key="p" :value="p">{{ p }}</option>
+                        </select>
                         <p v-if="fieldErrors.nama_produk" class="text-xs text-red-600">{{ fieldErrors.nama_produk[0] }}</p>
                     </div>
                     <div class="flex flex-col gap-1">
