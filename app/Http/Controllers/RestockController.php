@@ -77,7 +77,7 @@ class RestockController extends Controller
         $validated = $request->validate([
             'tanggal_kirim' => 'required|date',
             'kota_asal_gudang' => 'required|string|max:255',
-            'nama_produk' => 'required|string|max:255',
+            'nama_produk' => 'required|string|max:255|exists:products,nama_produk',
             'qty' => 'required|integer|min:1',
             'status' => 'required|in:sudah,belum',
         ]);
@@ -211,6 +211,9 @@ class RestockController extends Controller
             if (empty($tanggalFormatted)) $errors[] = 'Tanggal Kirim kosong/tidak valid';
             if (empty($kota)) $errors[] = 'Warehouse kosong';
             if (empty($nama)) $errors[] = 'Nama Produk kosong';
+            if (!empty($nama) && !\App\Models\Product::where('nama_produk', $nama)->exists()) {
+                $errors[] = 'Nama Produk belum terdaftar di Master Produk';
+            }
             if ($qty === null || $qty === '' || !is_numeric($qty)) $errors[] = 'Qty kosong/tidak valid';
             if (empty($statusNormalized)) $errors[] = 'Status kosong/tidak dikenali';
 
@@ -234,7 +237,7 @@ class RestockController extends Controller
             'rows' => 'required|array|min:1',
             'rows.*.tanggal_kirim' => 'required|date',
             'rows.*.kota_asal_gudang' => 'required|string',
-            'rows.*.nama_produk' => 'required|string',
+            'rows.*.nama_produk' => 'required|string|exists:products,nama_produk',
             'rows.*.qty' => 'required|integer|min:1',
             'rows.*.status' => 'required|in:sudah,belum',
         ]);
