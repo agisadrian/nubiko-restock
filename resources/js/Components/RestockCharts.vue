@@ -34,13 +34,31 @@ const produkMenipis = ref<ProdukItem[]>([]);
 const selectedKota = ref<string | null>(null);
 const produkPerKota = ref<{ nama_produk: string; total_qty: number }[]>([]);
 const loadingDetail = ref(false);
+const lainnyaDetail = ref<{ kota: string; total_qty: number }[]>([]);
+const viewMode = ref<'none' | 'lainnya-list' | 'produk-detail'>('none');
 
-async function selectKota(kota: string) {
-    if (selectedKota.value === kota) {
+function selectKota(kota: string) {
+    if (kota === 'Lainnya') {
+        if (viewMode.value === 'lainnya-list') {
+            viewMode.value = 'none';
+            return;
+        }
+        viewMode.value = 'lainnya-list';
         selectedKota.value = null;
         return;
     }
+
+    if (selectedKota.value === kota && viewMode.value === 'produk-detail') {
+        viewMode.value = 'none';
+        selectedKota.value = null;
+        return;
+    }
+    loadProdukDetail(kota);
+}
+
+async function loadProdukDetail(kota: string) {
     selectedKota.value = kota;
+    viewMode.value = 'produk-detail';
     loadingDetail.value = true;
     try {
         const res = await fetch('/api/warehouse');
@@ -54,6 +72,10 @@ async function selectKota(kota: string) {
     }
 }
 
+function closeDetail() {
+    viewMode.value = 'none';
+    selectedKota.value = null;
+}
 const granularity = ref<'day' | 'month'>('month');
 const chartDateFrom = ref('');
 const chartDateTo = ref('');
@@ -105,6 +127,9 @@ async function fetchChartData() {
         restockTrend.value = restockJson.monthly;
         byKota.value = restockJson.by_kota;
         stockOutTrend.value = stockOutJson.data;
+        restockTrend.value = restockJson.monthly;
+        byKota.value = restockJson.by_kota;
+        lainnyaDetail.value = restockJson.lainnya_detail || [];
 
         produkMenipis.value = (produkJson.data as ProdukItem[])
             .slice()
@@ -257,20 +282,38 @@ const totalQtyAllKota = computed(() => byKota.value.reduce((sum, k) => sum + k.t
         Total: <span class="font-semibold text-gray-800">{{ totalQtyAllKota.toLocaleString() }}</span> qty
     </p>
 
-    <div v-if="selectedKota" class="border-t border-gray-100 pt-3 mt-2">
-        <div class="flex items-center justify-between mb-2">
-            <p class="text-xs font-semibold text-gray-700">📍 {{ selectedKota }}</p>
-            <button @click="selectedKota = null" class="text-xs text-gray-400 hover:text-gray-600">✕ Tutup</button>
-        </div>
-        <p v-if="loadingDetail" class="text-xs text-gray-400 text-center py-4">Memuat...</p>
-        <div v-else class="max-h-48 overflow-y-auto flex flex-col gap-1.5">
-            <div v-for="p in produkPerKota" :key="p.nama_produk" class="flex items-center justify-between text-xs bg-gray-50 rounded-md px-2 py-1.5">
-                <span class="text-gray-700 truncate pr-2">{{ p.nama_produk }}</span>
-                <span class="font-semibold text-gray-900 shrink-0">{{ p.total_qty }}</span>
-            </div>
-            <p v-if="produkPerKota.length === 0" class="text-xs text-gray-400 text-center py-4">Tidak ada data produk.</p>
-        </div>
+    <!-- Panel: daftar warehouse di dalam "Lainnya" -->
+<div v-if="viewMode === 'lainnya-list'" class="border-t border-gray-100 pt-3 mt-2">
+    <div class="flex items-center justify-between mb-2">
+        <p class="text-xs font-semibold text-gray-700">📦 Warehouse dalam "Lainnya"</p>
+        <button @click="closeDetail" class="text-xs text-gray-400 hover:text-gray-600">✕ Tutup</button>
     </div>
+    <p class="text-xs text-gray-400 mb-2">Klik salah satu untuk lihat detail produknya</p>
+    <div class="max-h-48 overflow-y-auto flex flex-col gap-1.5">
+        <button v-for="w in lainnyaDetail" :key="w.kota" @click="loadProdukDetail(w.kota)"
+            class="flex items-center justify-between text-xs bg-gray-50 hover:bg-indigo-50 rounded-md px-2 py-1.5 transition text-left">
+            <span class="text-gray-700 truncate pr-2">{{ w.kota }}</span>
+            <span class="font-semibold text-gray-900 shrink-0">{{ w.total_qty }}</span>
+        </button>
+        <p v-if="lainnyaDetail.length === 0" class="text-xs text-gray-400 text-center py-4">Tidak ada data.</p>
+    </div>
+</div>
+
+<!-- Panel: breakdown produk per warehouse -->
+<div v-if="viewMode === 'produk-detail'" class="border-t border-gray-100 pt-3 mt-2">
+    <div class="flex items-center justify-between mb-2">
+        <p class="text-xs font-semibold text-gray-700">📍 {{ selectedKota }}</p>
+        <button @click="closeDetail" class="text-xs text-gray-400 hover:text-gray-600">✕ Tutup</button>
+    </div>
+    <p v-if="loadingDetail" class="text-xs text-gray-400 text-center py-4">Memuat...</p>
+    <div v-else class="max-h-48 overflow-y-auto flex flex-col gap-1.5">
+        <div v-for="p in produkPerKota" :key="p.nama_produk" class="flex items-center justify-between text-xs bg-gray-50 rounded-md px-2 py-1.5">
+            <span class="text-gray-700 truncate pr-2">{{ p.nama_produk }}</span>
+            <span class="font-semibold text-gray-900 shrink-0">{{ p.total_qty }}</span>
+        </div>
+        <p v-if="produkPerKota.length === 0" class="text-xs text-gray-400 text-center py-4">Tidak ada data produk.</p>
+    </div>
+</div>
 </div>
         </div>
 

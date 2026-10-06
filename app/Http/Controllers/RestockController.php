@@ -141,16 +141,20 @@ class RestockController extends Controller
             ->orderByDesc('total_qty')
             ->get();
 
-        $top = $byKota->take(7);
+       $top = $byKota->take(7);
         $rest = $byKota->skip(7);
         $byKotaFinal = $top->map(fn($r) => ['kota' => $r->kota_asal_gudang, 'total_qty' => (int) $r->total_qty]);
+
+        $lainnyaDetail = [];
         if ($rest->count() > 0) {
             $byKotaFinal->push(['kota' => 'Lainnya', 'total_qty' => (int) $rest->sum('total_qty')]);
+            $lainnyaDetail = $rest->map(fn($r) => ['kota' => $r->kota_asal_gudang, 'total_qty' => (int) $r->total_qty])->values();
         }
 
         return response()->json([
             'monthly' => $trend,
             'by_kota' => $byKotaFinal->values(),
+            'lainnya_detail' => $lainnyaDetail,
         ]);
     }
 
