@@ -227,44 +227,50 @@ onMounted(() => {
                 </div>
             </div>
 
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5 mb-6">
-                <h2 class="text-sm font-semibold text-gray-900 mb-4">Catat Stok Keluar</h2>
-                <form @submit.prevent="submitForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 items-start">
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs text-gray-500">Tanggal Keluar</label>
-                        <input type="date" v-model="form.tanggal_keluar" required
-                            :class="['border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2', fieldErrors.tanggal_keluar ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-orange-500']" />
-                        <p v-if="fieldErrors.tanggal_keluar" class="text-xs text-red-600">{{ fieldErrors.tanggal_keluar[0] }}</p>
-                    </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs text-gray-500">Nama Produk</label>
-                        <input type="text" v-model="produkSearch" placeholder="Ketik untuk cari produk..."
-                            class="border border-gray-300 rounded-lg px-3 py-1.5 text-xs mb-1 focus:outline-none focus:ring-2 focus:ring-orange-500" />
-                        <select v-model="form.nama_produk" required
-                            :class="['border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2', fieldErrors.nama_produk ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-orange-500']">
-                            <option value="" disabled>Pilih produk...</option>
-                            <option v-for="p in filteredProduk" :key="p" :value="p">{{ p }}</option>
-                        </select>
-                        <p v-if="fieldErrors.nama_produk" class="text-xs text-red-600">{{ fieldErrors.nama_produk[0] }}</p>
-                        <p v-if="daftarProduk.length === 0" class="text-xs text-gray-400">Belum ada produk di Master Produk.</p>
-                    </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs text-gray-500">Qty</label>
-                        <input type="number" v-model.number="form.qty" min="1" required
-                            :class="['border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2', fieldErrors.qty ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-orange-500']" />
-                        <p v-if="fieldErrors.qty" class="text-xs text-red-600">{{ fieldErrors.qty[0] }}</p>
-                    </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs text-gray-500">Keterangan (opsional)</label>
-                        <input type="text" v-model="form.keterangan" placeholder="cth: terjual, rusak"
-                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
-                    </div>
-                    <button type="submit" :disabled="submitting"
-                        class="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2 transition h-[38px] sm:col-span-2 lg:col-span-1 lg:mt-5">
-                        {{ submitting ? 'Menyimpan...' : 'Catat' }}
-                    </button>
-                </form>
+           <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
+    <h2 class="text-sm font-semibold text-gray-900 mb-4">Catat Stok Keluar</h2>
+    <form @submit.prevent="submitForm" class="flex flex-col gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-medium text-gray-600">Tanggal Keluar</label>
+                <input type="date" v-model="form.tanggal_keluar" required
+                    :class="['border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2', fieldErrors.tanggal_keluar ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-orange-500']" />
+                <p v-if="fieldErrors.tanggal_keluar" class="text-xs text-red-600">{{ fieldErrors.tanggal_keluar[0] }}</p>
             </div>
+            <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-medium text-gray-600">Qty</label>
+                <input type="number" v-model.number="form.qty" min="1" required
+                    :class="['border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2', fieldErrors.qty ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-orange-500']" />
+                <p v-if="fieldErrors.qty" class="text-xs text-red-600">{{ fieldErrors.qty[0] }}</p>
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-medium text-gray-600">Keterangan (opsional)</label>
+                <input type="text" v-model="form.keterangan" placeholder="cth: terjual, rusak"
+                    class="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-medium text-gray-600">Nama Produk</label>
+            <div :class="['border rounded-lg overflow-hidden', fieldErrors.nama_produk ? 'border-red-400' : 'border-gray-300 focus-within:ring-2 focus-within:ring-orange-500']">
+                <input type="text" v-model="produkSearch" placeholder="🔍 Ketik untuk cari produk..."
+                    class="w-full px-3 py-2 text-sm border-b border-gray-200 focus:outline-none" />
+                <select v-model="form.nama_produk" required
+                    class="w-full px-3 py-2.5 text-sm focus:outline-none bg-white">
+                    <option value="" disabled>Pilih produk...</option>
+                    <option v-for="p in filteredProduk" :key="p" :value="p">{{ p }}</option>
+                </select>
+            </div>
+            <p v-if="fieldErrors.nama_produk" class="text-xs text-red-600">{{ fieldErrors.nama_produk[0] }}</p>
+            <p v-if="daftarProduk.length === 0" class="text-xs text-gray-400">Belum ada produk di Master Produk.</p>
+        </div>
+
+        <button type="submit" :disabled="submitting"
+            class="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-semibold rounded-lg px-5 py-2.5 transition self-start">
+            {{ submitting ? 'Menyimpan...' : 'Catat Stok Keluar' }}
+        </button>
+    </form>
+</div>
 
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
