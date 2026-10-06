@@ -191,7 +191,7 @@ onMounted(() => {
 
 <template>
     <AppLayout>
-        <div class="fixed top-4 right-4 z-50 flex flex-col gap-2 w-80">
+        <div class="fixed top-16 lg:top-4 left-4 right-4 sm:left-auto z-50 flex flex-col gap-2 sm:w-80 pointer-events-none">
             <transition-group name="toast">
                 <div v-for="toast in toasts" :key="toast.id"
                     :class="['rounded-lg shadow-md px-4 py-3 text-sm font-medium text-white flex items-start gap-2', toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600']">
@@ -202,7 +202,7 @@ onMounted(() => {
         </div>
 
         <div class="max-w-5xl mx-auto">
-            <div class="flex items-center justify-between gap-3 mb-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                 <div>
                     <h1 class="text-lg font-semibold text-gray-900">Stok Keluar</h1>
                     <p class="text-sm text-gray-500">Catat barang yang keluar dari gudang/toko</p>
@@ -210,7 +210,7 @@ onMounted(() => {
                 <div>
                     <input ref="fileInput" type="file" accept=".csv,.xlsx,.xls" class="hidden" @change="handleImport" />
                     <button @click="fileInput?.click()" :disabled="importing"
-                        class="bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-sm font-medium text-gray-700 rounded-lg px-4 py-2 transition">
+                        class="w-full sm:w-auto bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-sm font-medium text-gray-700 rounded-lg px-4 py-2 transition">
                         {{ importing ? 'Mengimport...' : '📥 Import Excel/CSV' }}
                     </button>
                 </div>
@@ -227,9 +227,9 @@ onMounted(() => {
                 </div>
             </div>
 
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5 mb-6">
                 <h2 class="text-sm font-semibold text-gray-900 mb-4">Catat Stok Keluar</h2>
-                <form @submit.prevent="submitForm" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-start">
+                <form @submit.prevent="submitForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 items-start">
                     <div class="flex flex-col gap-1">
                         <label class="text-xs text-gray-500">Tanggal Keluar</label>
                         <input type="date" v-model="form.tanggal_keluar" required
@@ -260,17 +260,17 @@ onMounted(() => {
                             class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
                     </div>
                     <button type="submit" :disabled="submitting"
-                        class="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2 transition h-[38px] mt-5">
+                        class="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2 transition h-[38px] sm:col-span-2 lg:col-span-1 lg:mt-5">
                         {{ submitting ? 'Menyimpan...' : 'Catat' }}
                     </button>
                 </form>
             </div>
 
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <div class="flex items-center justify-between gap-3 mb-4">
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                     <h2 class="text-sm font-semibold text-gray-900">Riwayat Stok Keluar</h2>
                     <input v-model="searchQuery" type="text" placeholder="Cari nama produk..."
-                        class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                        class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-full sm:w-56 focus:outline-none focus:ring-2 focus:ring-orange-500" />
                 </div>
 
                 <p v-if="loading" class="text-sm text-gray-500 py-6 text-center">Memuat data...</p>
@@ -278,7 +278,7 @@ onMounted(() => {
 
                 <template v-else>
                     <div class="overflow-x-auto rounded-lg border border-gray-200">
-                        <table class="w-full text-sm">
+                        <table class="table-stack w-full text-sm">
                             <thead>
                                 <tr class="bg-orange-50 text-gray-700">
                                     <th class="text-left px-3 py-2 font-semibold">No</th>
@@ -291,12 +291,12 @@ onMounted(() => {
                             </thead>
                             <tbody>
                                 <tr v-for="item in items" :key="item.id" class="border-t border-gray-100 hover:bg-gray-50">
-                                    <td class="px-3 py-2">{{ item.No }}</td>
-                                    <td class="px-3 py-2">{{ item['Tanggal Keluar'] }}</td>
-                                    <td class="px-3 py-2">{{ item['Nama Produk'] }}</td>
-                                    <td class="px-3 py-2">{{ item.QTY }}</td>
-                                    <td class="px-3 py-2 text-gray-500">{{ item.Keterangan || '-' }}</td>
-                                    <td class="px-3 py-2">
+                                    <td data-label="No" data-hide-mobile class="px-3 py-2">{{ item.No }}</td>
+                                    <td data-label="Tanggal Keluar" class="px-3 py-2">{{ item['Tanggal Keluar'] }}</td>
+                                    <td data-label="Nama Produk" class="px-3 py-2">{{ item['Nama Produk'] }}</td>
+                                    <td data-label="Qty" class="px-3 py-2">{{ item.QTY }}</td>
+                                    <td data-label="Keterangan" class="px-3 py-2 text-gray-500">{{ item.Keterangan || '-' }}</td>
+                                    <td data-actions class="px-3 py-2">
                                         <button v-if="isAdmin" @click="deleteItem(item)" class="text-xs px-2 py-1 border border-red-300 text-red-600 rounded-md hover:bg-red-50">Hapus</button>
                                     </td>
                                 </tr>
@@ -307,7 +307,7 @@ onMounted(() => {
                         </table>
                     </div>
 
-                    <div class="flex items-center justify-between mt-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mt-4">
                         <p class="text-xs text-gray-500">Halaman {{ currentPage }} dari {{ lastPage }} ({{ total }} total data)</p>
                         <div class="flex gap-2">
                             <button @click="goToPage(currentPage - 1)" :disabled="currentPage <= 1"

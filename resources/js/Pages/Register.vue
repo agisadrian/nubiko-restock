@@ -40,8 +40,8 @@ function submit() {
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div class="w-full max-w-sm bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+    <div class="min-h-dvh bg-gray-50 flex items-center justify-center p-4 sm:p-6">
+        <div class="w-full max-w-sm bg-white rounded-xl border border-gray-200 shadow-sm p-5 sm:p-6">
             <div class="flex items-center gap-3 mb-6">
                 <div class="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold">NB</div>
                 <div>

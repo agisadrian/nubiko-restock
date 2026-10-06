@@ -112,7 +112,7 @@ onMounted(fetchUsers);
 
 <template>
     <AppLayout>
-        <div class="fixed top-4 right-4 z-50 flex flex-col gap-2 w-80">
+        <div class="fixed top-16 lg:top-4 left-4 right-4 sm:left-auto z-50 flex flex-col gap-2 sm:w-80 pointer-events-none">
             <transition-group name="toast">
                 <div v-for="toast in toasts" :key="toast.id"
                     :class="['rounded-lg shadow-md px-4 py-3 text-sm font-medium text-white flex items-start gap-2', toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600']">
@@ -131,16 +131,16 @@ onMounted(fetchUsers);
             <p v-if="loading" class="text-sm text-gray-500 py-6 text-center">Memuat data...</p>
 
             <template v-else>
-                <div v-if="pendingUsers.length > 0" class="bg-white rounded-xl border border-amber-200 shadow-sm p-5 mb-6">
+                <div v-if="pendingUsers.length > 0" class="bg-white rounded-xl border border-amber-200 shadow-sm p-4 sm:p-5 mb-6">
                     <h2 class="text-sm font-semibold text-amber-700 mb-4">⏳ Menunggu Persetujuan ({{ pendingUsers.length }})</h2>
                     <div class="flex flex-col gap-2">
                         <div v-for="user in pendingUsers" :key="user.id"
-                            class="flex items-center justify-between gap-3 p-3 bg-amber-50 rounded-lg">
+                            class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 bg-amber-50 rounded-lg">
                             <div>
                                 <p class="text-sm font-medium text-gray-900">{{ user.name }}</p>
-                                <p class="text-xs text-gray-500">{{ user.email }}</p>
+                                <p class="text-xs text-gray-500 break-all">{{ user.email }}</p>
                             </div>
-                            <div class="flex gap-2">
+                            <div class="flex gap-2 shrink-0">
                                 <button @click="approveUser(user)"
                                     class="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
                                     Setujui
@@ -154,10 +154,10 @@ onMounted(fetchUsers);
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5">
                     <h2 class="text-sm font-semibold text-gray-900 mb-4">Semua User</h2>
                     <div class="overflow-x-auto rounded-lg border border-gray-200">
-                        <table class="w-full text-sm">
+                        <table class="table-stack w-full text-sm">
                             <thead>
                                 <tr class="bg-gray-50 text-gray-600">
                                     <th class="text-left px-3 py-2 font-semibold">Nama</th>
@@ -169,15 +169,15 @@ onMounted(fetchUsers);
                             </thead>
                             <tbody>
                                 <tr v-for="user in otherUsers" :key="user.id" class="border-t border-gray-100">
-                                    <td class="px-3 py-2">{{ user.name }}</td>
-                                    <td class="px-3 py-2 text-gray-500">{{ user.email }}</td>
-                                    <td class="px-3 py-2 capitalize">{{ user.role }}</td>
-                                    <td class="px-3 py-2">
+                                    <td data-label="Nama" class="px-3 py-2">{{ user.name }}</td>
+                                    <td data-label="Email" class="px-3 py-2 text-gray-500">{{ user.email }}</td>
+                                    <td data-label="Role" class="px-3 py-2 capitalize">{{ user.role }}</td>
+                                    <td data-label="Status" class="px-3 py-2">
                                         <span :class="['inline-block px-2.5 py-1 rounded-full text-xs font-medium', statusBadgeClass(user.status)]">
                                             {{ statusLabel(user.status) }}
                                         </span>
                                     </td>
-                                    <td class="px-3 py-2">
+                                    <td data-actions class="px-3 py-2">
                                         <button @click="deleteUser(user)" class="text-xs px-2 py-1 border border-red-300 text-red-600 rounded-md hover:bg-red-50">Hapus</button>
                                     </td>
                                 </tr>

@@ -84,8 +84,8 @@ onMounted(fetchData);
         <!-- Modal detail -->
         <transition name="modal">
             <div v-if="selected" @click.self="closeDetail" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-                <div class="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[80vh] flex flex-col">
-                    <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+                <div class="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[85dvh] flex flex-col">
+                    <div class="p-4 sm:p-5 border-b border-gray-100 flex items-start justify-between gap-3">
                         <div>
                             <h2 class="text-base font-semibold text-gray-900">{{ selected.warehouse }}</h2>
                             <p class="text-xs text-gray-500 mt-0.5">
@@ -93,7 +93,7 @@ onMounted(fetchData);
                                 <span class="font-semibold text-gray-700">{{ selected.total_qty.toLocaleString() }} qty</span>
                             </p>
                         </div>
-                        <button @click="closeDetail" class="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+                        <button @click="closeDetail" class="text-gray-400 hover:text-gray-600 text-lg leading-none shrink-0 p-1 -m-1">✕</button>
                     </div>
 
                     <div class="p-5 pb-3">
