@@ -31,6 +31,29 @@ const stockOutTrend = ref<TrendData[]>([]);
 const byKota = ref<KotaData[]>([]);
 const produkMenipis = ref<ProdukItem[]>([]);
 
+const selectedKota = ref<string | null>(null);
+const produkPerKota = ref<{ nama_produk: string; total_qty: number }[]>([]);
+const loadingDetail = ref(false);
+
+async function selectKota(kota: string) {
+    if (selectedKota.value === kota) {
+        selectedKota.value = null;
+        return;
+    }
+    selectedKota.value = kota;
+    loadingDetail.value = true;
+    try {
+        const res = await fetch('/api/warehouse');
+        const json = await res.json();
+        const found = json.data.find((w: any) => w.warehouse === kota);
+        produkPerKota.value = found ? found.produk : [];
+    } catch (e) {
+        produkPerKota.value = [];
+    } finally {
+        loadingDetail.value = false;
+    }
+}
+
 const granularity = ref<'day' | 'month'>('month');
 const chartDateFrom = ref('');
 const chartDateTo = ref('');
@@ -151,6 +174,13 @@ const donutChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     cutout: '65%',
+    onClick: (_event: any, elements: any[]) => {
+        if (elements.length > 0) {
+            const index = elements[0].index;
+            const kota = byKota.value[index]?.kota;
+            if (kota) selectKota(kota);
+        }
+    },
     plugins: { legend: { position: 'right' as const, labels: { boxWidth: 10, font: { size: 11 } } } },
 };
 
@@ -215,17 +245,33 @@ const totalQtyAllKota = computed(() => byKota.value.reduce((sum, k) => sum + k.t
             </div>
 
             <!-- Donut chart -->
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-               <h2 class="text-sm font-semibold text-gray-900 mb-4">Qty per Warehouse</h2>
-                <div class="h-56 relative">
-                    <p v-if="loading" class="text-sm text-gray-400 text-center pt-20">Memuat...</p>
-                    <p v-else-if="byKota.length === 0" class="text-sm text-gray-400 text-center pt-20">Tidak ada data.</p>
-                    <Doughnut v-else :data="donutChartData" :options="donutChartOptions" />
-                </div>
-                <p v-if="!loading && byKota.length > 0" class="text-center text-xs text-gray-500 mt-2">
-                    Total: <span class="font-semibold text-gray-800">{{ totalQtyAllKota.toLocaleString() }}</span> qty
-                </p>
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+    <h2 class="text-sm font-semibold text-gray-900 mb-1">Qty per Warehouse</h2>
+    <p class="text-xs text-gray-400 mb-3">Klik salah satu bagian chart untuk detail produk</p>
+    <div class="h-56 relative">
+        <p v-if="loading" class="text-sm text-gray-400 text-center pt-20">Memuat...</p>
+        <p v-else-if="byKota.length === 0" class="text-sm text-gray-400 text-center pt-20">Tidak ada data.</p>
+        <Doughnut v-else :data="donutChartData" :options="donutChartOptions" />
+    </div>
+    <p v-if="!loading && byKota.length > 0" class="text-center text-xs text-gray-500 mt-2 mb-3">
+        Total: <span class="font-semibold text-gray-800">{{ totalQtyAllKota.toLocaleString() }}</span> qty
+    </p>
+
+    <div v-if="selectedKota" class="border-t border-gray-100 pt-3 mt-2">
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-xs font-semibold text-gray-700">📍 {{ selectedKota }}</p>
+            <button @click="selectedKota = null" class="text-xs text-gray-400 hover:text-gray-600">✕ Tutup</button>
+        </div>
+        <p v-if="loadingDetail" class="text-xs text-gray-400 text-center py-4">Memuat...</p>
+        <div v-else class="max-h-48 overflow-y-auto flex flex-col gap-1.5">
+            <div v-for="p in produkPerKota" :key="p.nama_produk" class="flex items-center justify-between text-xs bg-gray-50 rounded-md px-2 py-1.5">
+                <span class="text-gray-700 truncate pr-2">{{ p.nama_produk }}</span>
+                <span class="font-semibold text-gray-900 shrink-0">{{ p.total_qty }}</span>
             </div>
+            <p v-if="produkPerKota.length === 0" class="text-xs text-gray-400 text-center py-4">Tidak ada data produk.</p>
+        </div>
+    </div>
+</div>
         </div>
 
         <!-- Bar chart: produk stok menipis -->

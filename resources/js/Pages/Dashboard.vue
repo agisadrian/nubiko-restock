@@ -11,21 +11,25 @@ interface ProdukItem {
 }
 
 const restockStats = ref({ total: 0, total_qty: 0, sudah: 0, belum: 0 });
+const stockOutTotal = ref({ total: 0, total_qty: 0 });
 const produkItems = ref<ProdukItem[]>([]);
 const loading = ref(true);
 
 async function fetchOverview() {
     loading.value = true;
     try {
-        const [restockRes, produkRes] = await Promise.all([
+       const [restockRes, produkRes, stockOutRes] = await Promise.all([
             fetch('/api/restock?page=1'),
             fetch('/api/produk'),
+            fetch('/api/stock-out?page=1'),
         ]);
         const restockJson = await restockRes.json();
         const produkJson = await produkRes.json();
+        const stockOutJson = await stockOutRes.json();
 
         restockStats.value = restockJson.stats;
         produkItems.value = produkJson.data;
+        stockOutTotal.value = { total: stockOutJson.total, total_qty: stockOutJson.total_qty };
     } catch (e) {
         console.error('Gagal memuat overview', e);
     } finally {
@@ -48,24 +52,28 @@ onMounted(fetchOverview);
                 <p class="text-sm text-gray-500">Ringkasan restock, stok keluar, dan sisa stok produk</p>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <p class="text-xs text-gray-500 mb-1">Total Restock Masuk</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ restockStats.total }}</p>
-                </div>
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <p class="text-xs text-gray-500 mb-1">Belum Inbound</p>
-                    <p class="text-2xl font-bold text-amber-600">{{ restockStats.belum }}</p>
-                </div>
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <p class="text-xs text-gray-500 mb-1">Total Sisa Stok</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ totalSisaStok.toLocaleString() }}</p>
-                </div>
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <p class="text-xs text-gray-500 mb-1">Produk Stok Menipis/Habis</p>
-                    <p class="text-2xl font-bold text-red-600">{{ produkStokMenipis + produkStokHabis }}</p>
-                </div>
-            </div>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p class="text-xs text-gray-500 mb-1">Total Restock Masuk</p>
+        <p class="text-2xl font-bold text-gray-900">{{ restockStats.total }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p class="text-xs text-gray-500 mb-1">Belum Inbound</p>
+        <p class="text-2xl font-bold text-amber-600">{{ restockStats.belum }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p class="text-xs text-gray-500 mb-1">Total Stok Keluar</p>
+        <p class="text-2xl font-bold text-red-600">{{ stockOutTotal.total_qty.toLocaleString() }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p class="text-xs text-gray-500 mb-1">Total Sisa Stok</p>
+        <p class="text-2xl font-bold text-gray-900">{{ totalSisaStok.toLocaleString() }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <p class="text-xs text-gray-500 mb-1">Produk Stok Menipis/Habis</p>
+        <p class="text-2xl font-bold text-red-600">{{ produkStokMenipis + produkStokHabis }}</p>
+    </div>
+</div>
 
             <RestockCharts />
 
