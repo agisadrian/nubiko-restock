@@ -8,6 +8,7 @@ interface ProdukItem {
     total_masuk: number;
     total_keluar: number;
     sisa_stok: number;
+    stok_minimum: number;
 }
 
 const restockStats = ref({ total: 0, total_qty: 0, sudah: 0, belum: 0 });
@@ -38,7 +39,7 @@ async function fetchOverview() {
 }
 
 const totalSisaStok = computed(() => produkItems.value.reduce((sum, i) => sum + i.sisa_stok, 0));
-const produkStokMenipis = computed(() => produkItems.value.filter(i => i.sisa_stok <= 10 && i.sisa_stok >= 0).length);
+const produkStokMenipis = computed(() => produkItems.value.filter(i => i.sisa_stok <= i.stok_minimum && i.sisa_stok > 0).length);
 const produkStokHabis = computed(() => produkItems.value.filter(i => i.sisa_stok <= 0).length);
 
 onMounted(fetchOverview);
@@ -93,7 +94,7 @@ onMounted(fetchOverview);
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="item in produkItems.filter(i => i.sisa_stok <= 10)" :key="item.nama_produk"
+                            <tr v-for="item in produkItems.filter(i => i.sisa_stok <= i.stok_minimum)" :key="item.nama_produk"
                                 class="border-t border-gray-100 hover:bg-gray-50">
                                 <td data-label="Nama Produk" class="px-3 py-2">{{ item.nama_produk }}</td>
                                 <td data-label="Sisa Stok" class="px-3 py-2 font-semibold">{{ item.sisa_stok }}</td>

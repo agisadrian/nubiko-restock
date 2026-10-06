@@ -7,6 +7,7 @@ interface ProdukItem {
     total_masuk: number;
     total_keluar: number;
     sisa_stok: number;
+    stok_minimum: number;
 }
 
 const items = ref<ProdukItem[]>([]);
@@ -41,7 +42,7 @@ watch(searchQuery, () => {
 
 const totalProduk = computed(() => items.value.length);
 const totalSisaStok = computed(() => items.value.reduce((sum, i) => sum + i.sisa_stok, 0));
-const produkStokMenipis = computed(() => items.value.filter(i => i.sisa_stok <= 10 && i.sisa_stok >= 0).length);
+const produkStokMenipis = computed(() => items.value.filter(i => i.sisa_stok <= i.stok_minimum && i.sisa_stok > 0).length);
 const produkStokHabis = computed(() => items.value.filter(i => i.sisa_stok <= 0).length);
 
 onMounted(fetchData);
@@ -101,12 +102,12 @@ onMounted(fetchData);
                                 <td data-label="Total Masuk" class="px-3 py-2 text-emerald-600">+{{ item.total_masuk }}</td>
                                 <td data-label="Total Keluar" class="px-3 py-2 text-red-500">-{{ item.total_keluar }}</td>
                                 <td data-label="Sisa Stok" class="px-3 py-2 font-semibold">{{ item.sisa_stok }}</td>
-                                <td data-label="Status" class="px-3 py-2">
+                                <td class="px-3 py-2">
                                     <span v-if="item.sisa_stok <= 0" class="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">Stok Habis</span>
-                                    <span v-else-if="item.sisa_stok <= 10" class="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Stok Menipis</span>
+                                    <span v-else-if="item.sisa_stok <= item.stok_minimum" class="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Stok Menipis</span>
                                     <span v-else class="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Aman</span>
                                 </td>
-                            </tr>
+                                                            </tr>
                             <tr v-if="items.length === 0">
                                 <td colspan="5" class="text-center text-gray-400 py-8">Belum ada data produk.</td>
                             </tr>
