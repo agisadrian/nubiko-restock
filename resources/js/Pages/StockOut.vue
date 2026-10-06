@@ -45,7 +45,7 @@ const filteredProduk = computed(() => {
 
 async function fetchDaftarProduk() {
     try {
-        const res = await fetch('/api/restock/list-produk');
+        const res = await fetch('/api/products/list-names');
         const json = await res.json();
         daftarProduk.value = json.data;
     } catch (e) {
@@ -246,7 +246,7 @@ onMounted(() => {
                             <option v-for="p in filteredProduk" :key="p" :value="p">{{ p }}</option>
                         </select>
                         <p v-if="fieldErrors.nama_produk" class="text-xs text-red-600">{{ fieldErrors.nama_produk[0] }}</p>
-                        <p v-if="daftarProduk.length === 0" class="text-xs text-gray-400">Belum ada produk "Sudah Inbound" di Restock.</p>
+                        <p v-if="daftarProduk.length === 0" class="text-xs text-gray-400">Belum ada produk di Master Produk.</p>
                     </div>
                     <div class="flex flex-col gap-1">
                         <label class="text-xs text-gray-500">Qty</label>
