@@ -151,6 +151,13 @@ const combinedLabels = computed(() => {
     return Array.from(labels);
 });
 
+function makeGradient(ctx: CanvasRenderingContext2D, area: any, colorTop: string, colorBottom: string) {
+    const gradient = ctx.createLinearGradient(0, area.top, 0, area.bottom);
+    gradient.addColorStop(0, colorTop);
+    gradient.addColorStop(1, colorBottom);
+    return gradient;
+}
+
 const lineChartData = computed(() => {
     const masukMap = new Map(restockTrend.value.map(t => [t.periode, t.total_qty]));
     const keluarMap = new Map(stockOutTrend.value.map(t => [t.periode, t.total_qty]));
@@ -161,20 +168,39 @@ const lineChartData = computed(() => {
                 label: 'Qty Masuk (Restock)',
                 data: combinedLabels.value.map(l => masukMap.get(l) ?? 0),
                 borderColor: '#f97316',
-                backgroundColor: 'rgba(249,115,22,0.1)',
-                tension: 0.4,
+                backgroundColor: (context: any) => {
+                    const { ctx, chartArea } = context.chart;
+                    if (!chartArea) return 'rgba(249,115,22,0.15)';
+                    return makeGradient(ctx, chartArea, 'rgba(249,115,22,0.35)', 'rgba(249,115,22,0.02)');
+                },
+                tension: 0.45,
                 fill: true,
-                pointRadius: 3,
+                borderWidth: 3,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#f97316',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointHoverBorderWidth: 2,
             },
             {
                 label: 'Qty Keluar',
                 data: combinedLabels.value.map(l => keluarMap.get(l) ?? 0),
-                borderColor: '#ef4444',
-                backgroundColor: 'rgba(239,68,68,0.08)',
-                tension: 0.4,
+                borderColor: '#8b5cf6',
+                backgroundColor: (context: any) => {
+                    const { ctx, chartArea } = context.chart;
+                    if (!chartArea) return 'rgba(139,92,246,0.15)';
+                    return makeGradient(ctx, chartArea, 'rgba(139,92,246,0.35)', 'rgba(139,92,246,0.02)');
+                },
+                tension: 0.45,
                 fill: true,
-                pointRadius: 3,
-                borderDash: [5, 4],
+                borderWidth: 3,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#8b5cf6',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointHoverBorderWidth: 2,
             },
         ],
     };
@@ -184,8 +210,23 @@ const lineChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: 'index' as const, intersect: false },
-    plugins: { legend: { position: 'bottom' as const, labels: { usePointStyle: true, boxWidth: 8 } } },
-    scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } },
+    plugins: {
+        legend: { position: 'bottom' as const, labels: { usePointStyle: true, boxWidth: 8 } },
+        tooltip: {
+            backgroundColor: '#fff',
+            titleColor: '#111827',
+            bodyColor: '#374151',
+            borderColor: '#e5e7eb',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 8,
+            displayColors: true,
+        },
+    },
+    scales: {
+        y: { beginAtZero: true, grid: { color: '#f1f5f9', drawTicks: false }, border: { display: false } },
+        x: { grid: { display: false }, border: { display: false } },
+    },
 };
 
 const donutColors = ['#f97316', '#fb923c', '#fdba74', '#ec4899', '#8b5cf6', '#06b6d4', '#10b981', '#94a3b8'];
