@@ -18,15 +18,22 @@ interface WarehouseItem {
 
 const items = ref<WarehouseItem[]>([]);
 const loading = ref(true);
-const expanded = ref<Set<string>>(new Set());
+const selected = ref<WarehouseItem | null>(null);
+const produkSearch = ref('');
 
-function toggleExpand(warehouse: string) {
-    if (expanded.value.has(warehouse)) {
-        expanded.value.delete(warehouse);
-    } else {
-        expanded.value.add(warehouse);
-    }
-    expanded.value = new Set(expanded.value);
+const colors = ['bg-orange-100 text-orange-600', 'bg-indigo-100 text-indigo-600', 'bg-emerald-100 text-emerald-600', 'bg-pink-100 text-pink-600', 'bg-sky-100 text-sky-600'];
+
+function colorFor(index: number) {
+    return colors[index % colors.length];
+}
+
+function openDetail(item: WarehouseItem) {
+    selected.value = item;
+    produkSearch.value = '';
+}
+
+function closeDetail() {
+    selected.value = null;
 }
 
 async function fetchData() {
@@ -56,47 +63,75 @@ onMounted(fetchData);
             <p v-if="loading" class="text-sm text-gray-500 py-6 text-center">Memuat data...</p>
             <p v-else-if="items.length === 0" class="text-sm text-gray-400 py-6 text-center">Belum ada data.</p>
 
-            <div v-else class="flex flex-col gap-3">
-                <div v-for="w in items" :key="w.warehouse" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <button @click="toggleExpand(w.warehouse)" class="w-full flex items-center justify-between gap-3 p-4 hover:bg-gray-50 transition text-left">
-                        <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-semibold text-xs">
-                                {{ w.warehouse.slice(0, 2).toUpperCase() }}
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold text-gray-900">{{ w.warehouse }}</p>
-                                <p class="text-xs text-gray-500">{{ w.total_produk }} jenis produk · {{ w.total_kiriman }} kiriman</p>
-                            </div>
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <button v-for="(w, index) in items" :key="w.warehouse" @click="openDetail(w)"
+                    class="text-left bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-150">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div :class="['w-9 h-9 rounded-lg flex items-center justify-center font-semibold text-xs shrink-0', colorFor(index)]">
+                            {{ w.warehouse.slice(0, 2).toUpperCase() }}
                         </div>
-                        <div class="flex items-center gap-4">
-                            <div class="text-right">
-                                <p class="text-xs text-gray-500">Total Qty</p>
-                                <p class="text-lg font-bold text-gray-900">{{ w.total_qty.toLocaleString() }}</p>
-                            </div>
-                            <span class="text-gray-400 text-sm">{{ expanded.has(w.warehouse) ? '▲' : '▼' }}</span>
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-gray-900 truncate">{{ w.warehouse }}</p>
+                            <p class="text-xs text-gray-500">{{ w.total_produk }} jenis produk</p>
                         </div>
-                    </button>
+                    </div>
+                    <p class="text-xl font-bold text-gray-900">{{ w.total_qty.toLocaleString() }}</p>
+                    <p class="text-xs text-gray-400">{{ w.total_kiriman }} kiriman · lihat detail →</p>
+                </button>
+            </div>
+        </div>
 
-                    <div v-if="expanded.has(w.warehouse)" class="border-t border-gray-100 px-4 py-3 bg-gray-50">
-                        <table class="w-full text-sm">
-                            <thead>
-                                <tr class="text-gray-500">
-                                    <th class="text-left py-1.5 font-medium">Nama Produk</th>
-                                    <th class="text-left py-1.5 font-medium">Total Qty</th>
-                                    <th class="text-left py-1.5 font-medium">Jumlah Kiriman</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="p in w.produk" :key="p.nama_produk" class="border-t border-gray-200">
-                                    <td class="py-1.5">{{ p.nama_produk }}</td>
-                                    <td class="py-1.5 font-medium">{{ p.total_qty }}</td>
-                                    <td class="py-1.5 text-gray-500">{{ p.jumlah_kiriman }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
+        <!-- Modal detail -->
+        <transition name="modal">
+            <div v-if="selected" @click.self="closeDetail" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+                <div class="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[80vh] flex flex-col">
+                    <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-base font-semibold text-gray-900">{{ selected.warehouse }}</h2>
+                            <p class="text-xs text-gray-500 mt-0.5">
+                                {{ selected.total_produk }} jenis produk · {{ selected.total_kiriman }} kiriman ·
+                                <span class="font-semibold text-gray-700">{{ selected.total_qty.toLocaleString() }} qty</span>
+                            </p>
+                        </div>
+                        <button @click="closeDetail" class="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+                    </div>
+
+                    <div class="p-5 pb-3">
+                        <input v-model="produkSearch" type="text" placeholder="Cari produk..."
+                            class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto px-5 pb-5">
+                        <div class="flex flex-col gap-1.5">
+                            <div v-for="p in selected.produk.filter(p => p.nama_produk.toLowerCase().includes(produkSearch.toLowerCase()))"
+                                :key="p.nama_produk"
+                                class="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
+                                <span class="text-gray-700 truncate pr-2">{{ p.nama_produk }}</span>
+                                <div class="text-right shrink-0">
+                                    <span class="font-semibold text-gray-900">{{ p.total_qty }}</span>
+                                    <span class="text-xs text-gray-400 ml-1">({{ p.jumlah_kiriman }}x)</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </transition>
     </AppLayout>
 </template>
+
+<style scoped>
+.modal-enter-active, .modal-leave-active {
+    transition: opacity 0.2s ease;
+}
+.modal-enter-from, .modal-leave-to {
+    opacity: 0;
+}
+.modal-enter-active .bg-white, .modal-leave-active .bg-white {
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.modal-enter-from .bg-white, .modal-leave-to .bg-white {
+    transform: scale(0.96);
+    opacity: 0;
+}
+</style>
