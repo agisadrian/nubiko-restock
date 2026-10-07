@@ -7,3 +7,74 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* ==========================================================================
+   Responsive helpers
+   ========================================================================== */
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+@media (max-width: 767px) {
+    /* Cegah iOS Safari zoom otomatis saat input difokus (font < 16px) */
+    input:not([type='checkbox']):not([type='radio']):not([type='file']),
+    select,
+    textarea {
+        font-size: 16px;
+    }
+
+    /* ---- Tabel -> kartu (stacked) di layar kecil ----
+       Pakai: <table class="table-stack"> dan <td data-label="Nama Kolom">.
+       Atribut tambahan di <td>:
+         data-actions      -> sel tombol aksi (rata kanan, tanpa label)
+         data-hide-mobile  -> sembunyikan sel ini di mobile                 */
+    .table-stack,
+    .table-stack tbody {
+        display: block;
+        width: 100%;
+    }
+    .table-stack thead {
+        display: none;
+    }
+    .table-stack tr {
+        display: block;
+        padding: 0.75rem;
+        border-top: 1px solid #f3f4f6;
+    }
+    .table-stack tr:first-child {
+        border-top: 0;
+    }
+    .table-stack td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.3rem 0;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+    .table-stack td[data-label]::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #6b7280;
+        text-align: left;
+    }
+    .table-stack td:not([data-label]) {
+        justify-content: center;
+        text-align: center;
+    }
+    .table-stack td[data-actions] {
+        justify-content: flex-end;
+        padding-top: 0.6rem;
+    }
+    .table-stack td[data-actions] button {
+        padding: 0.4rem 0.8rem;
+    }
+    .table-stack td[data-hide-mobile],
+    .table-stack td:empty {
+        display: none;
+    }
+}

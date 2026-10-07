@@ -321,7 +321,7 @@ onMounted(() => {
 
 <template>
     <AppLayout>
-        <div class="fixed top-4 right-4 z-50 flex flex-col gap-2 w-80">
+        <div class="fixed top-16 lg:top-4 left-4 right-4 sm:left-auto z-50 flex flex-col gap-2 sm:w-80 pointer-events-none">
             <transition-group name="toast">
                 <div v-for="toast in toasts" :key="toast.id"
                     :class="['rounded-lg shadow-md px-4 py-3 text-sm font-medium text-white flex items-start gap-2', toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600']">
@@ -332,7 +332,7 @@ onMounted(() => {
         </div>
 
         <div class="max-w-6xl mx-auto">
-            <div class="flex items-center justify-between gap-3 mb-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                 <div>
                     <h1 class="text-lg font-semibold text-gray-900">Restock Masuk</h1>
                     <p class="text-sm text-gray-500">Kelola data pengiriman restock dari warehouse</p>
@@ -340,7 +340,7 @@ onMounted(() => {
                 <div class="flex items-center gap-2">
                     <input ref="fileInput" type="file" accept=".csv,.xlsx,.xls" class="hidden" @change="handleImport" />
                     <button @click="fileInput?.click()" :disabled="importing"
-                        class="bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-sm font-medium text-gray-700 rounded-lg px-4 py-2 transition">
+                        class="w-full sm:w-auto bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-sm font-medium text-gray-700 rounded-lg px-4 py-2 transition">
                         {{ importing ? 'Membaca file...' : '📥 Import Excel/CSV' }}
                     </button>
                 </div>
@@ -379,66 +379,75 @@ onMounted(() => {
 
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
                 <h2 class="text-sm font-semibold text-gray-900 mb-4">Tambah Restock Baru</h2>
-                <form @submit.prevent="submitForm" class="grid grid-cols-1 md:grid-cols-6 gap-3 items-start">
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs text-gray-500">Tanggal Kirim</label>
-                        <input type="date" v-model="form.tanggal_kirim" required
-                            :class="['border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2', fieldErrors.tanggal_kirim ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-indigo-500']" />
-                        <p v-if="fieldErrors.tanggal_kirim" class="text-xs text-red-600">{{ fieldErrors.tanggal_kirim[0] }}</p>
+                <form @submit.prevent="submitForm" class="flex flex-col gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-medium text-gray-600">Tanggal Kirim</label>
+                            <input type="date" v-model="form.tanggal_kirim" required
+                                :class="['border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2', fieldErrors.tanggal_kirim ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-indigo-500']" />
+                            <p v-if="fieldErrors.tanggal_kirim" class="text-xs text-red-600">{{ fieldErrors.tanggal_kirim[0] }}</p>
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-medium text-gray-600">Warehouse</label>
+                            <input type="text" v-model="form.kota_asal_gudang" required placeholder="Bandung"
+                                :class="['border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2', fieldErrors.kota_asal_gudang ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-indigo-500']" />
+                            <p v-if="fieldErrors.kota_asal_gudang" class="text-xs text-red-600">{{ fieldErrors.kota_asal_gudang[0] }}</p>
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-medium text-gray-600">Qty</label>
+                            <input type="number" v-model.number="form.qty" min="1" required
+                                :class="['border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2', fieldErrors.qty ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-indigo-500']" />
+                            <p v-if="fieldErrors.qty" class="text-xs text-red-600">{{ fieldErrors.qty[0] }}</p>
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-medium text-gray-600">Status</label>
+                            <select v-model="form.status"
+                                class="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="belum">Belum Inbound</option>
+                                <option value="sudah">Sudah Inbound</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs text-gray-500">Warehouse</label>
-                        <input type="text" v-model="form.kota_asal_gudang" required placeholder="Bandung"
-                            :class="['border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2', fieldErrors.kota_asal_gudang ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-indigo-500']" />
-                        <p v-if="fieldErrors.kota_asal_gudang" class="text-xs text-red-600">{{ fieldErrors.kota_asal_gudang[0] }}</p>
-                    </div>
-                   <div class="flex flex-col gap-1">
-                        <label class="text-xs text-gray-500">Nama Produk</label>
-                        <input type="text" v-model="produkSearch" placeholder="Ketik untuk cari..."
-                            class="border border-gray-300 rounded-lg px-3 py-1.5 text-xs mb-1 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                        <select v-model="form.nama_produk" required
-                            :class="['border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2', fieldErrors.nama_produk ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-indigo-500']">
-                            <option value="" disabled>Pilih produk...</option>
-                            <option v-for="p in filteredProduk" :key="p" :value="p">{{ p }}</option>
-                        </select>
-                        <p v-if="fieldErrors.nama_produk" class="text-xs text-red-600">{{ fieldErrors.nama_produk[0] }}</p>
-                    </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs text-gray-500">Qty</label>
-                        <input type="number" v-model.number="form.qty" min="1" required
-                            :class="['border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2', fieldErrors.qty ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-indigo-500']" />
-                        <p v-if="fieldErrors.qty" class="text-xs text-red-600">{{ fieldErrors.qty[0] }}</p>
-                    </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs text-gray-500">Status</label>
-                        <select v-model="form.status" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="belum">Belum Inbound</option>
-                            <option value="sudah">Sudah Inbound</option>
-                        </select>
-                    </div>
-                    <button type="submit" :disabled="submitting"
-                        class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2 transition h-[38px] mt-5">
-                        {{ submitting ? 'Menyimpan...' : 'Tambah' }}
-                    </button>
-                </form>
-            </div>
 
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-medium text-gray-600">Nama Produk</label>
+            <div :class="['border rounded-lg overflow-hidden', fieldErrors.nama_produk ? 'border-red-400' : 'border-gray-300 focus-within:ring-2 focus-within:ring-indigo-500']">
+                <input type="text" v-model="produkSearch" placeholder="🔍 Ketik untuk cari produk..."
+                    class="w-full px-3 py-2 text-sm border-b border-gray-200 focus:outline-none" />
+                <select v-model="form.nama_produk" required
+                    class="w-full px-3 py-2.5 text-sm focus:outline-none bg-white">
+                    <option value="" disabled>Pilih produk...</option>
+                    <option v-for="p in filteredProduk" :key="p" :value="p">{{ p }}</option>
+                </select>
+            </div>
+            <p v-if="fieldErrors.nama_produk" class="text-xs text-red-600">{{ fieldErrors.nama_produk[0] }}</p>
+        </div>
+
+        <button type="submit" :disabled="submitting"
+            class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg px-5 py-2.5 transition self-start">
+            {{ submitting ? 'Menyimpan...' : 'Tambah Restock' }}
+        </button>
+    </form>
+</div>
+
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5">
                 <div class="flex flex-col gap-3 mb-4">
                     <h2 class="text-sm font-semibold text-gray-900">Daftar Restock</h2>
                     <div class="flex flex-wrap gap-2 items-center">
                         <input v-model="searchQuery" type="text" placeholder="Cari nama produk / warehouse..."
-                            class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                        <select v-model="statusFilter" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-full sm:w-56 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        <select v-model="statusFilter" class="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             <option value="">Semua Status</option>
                             <option value="sudah">Sudah Inbound</option>
                             <option value="belum">Belum Inbound</option>
                         </select>
-                        <input type="date" v-model="dateFrom"
-                            class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                        <span class="text-gray-400 text-sm">—</span>
-                        <input type="date" v-model="dateTo"
-                            class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <input type="date" v-model="dateFrom"
+                                class="min-w-0 flex-1 sm:flex-none border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                            <span class="text-gray-400 text-sm">—</span>
+                            <input type="date" v-model="dateTo"
+                                class="min-w-0 flex-1 sm:flex-none border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        </div>
                         <button v-for="preset in presetRanges" :key="preset.label" @click="applyPreset(preset.days)" type="button"
                             class="text-xs px-2 py-1 border border-gray-300 rounded-md hover:bg-gray-100 text-gray-600">
                             {{ preset.label }}
@@ -455,7 +464,7 @@ onMounted(() => {
 
                 <template v-else>
                     <div class="overflow-x-auto rounded-lg border border-gray-200">
-                        <table class="w-full text-sm">
+                        <table class="table-stack w-full text-sm">
                             <thead>
                                 <tr class="bg-indigo-50 text-gray-700">
                                     <th class="text-left px-3 py-2 font-semibold">No</th>
@@ -470,18 +479,18 @@ onMounted(() => {
                             </thead>
                             <tbody>
                                 <tr v-for="item in items" :key="item.row_number" class="border-t border-gray-100 hover:bg-gray-50">
-                                    <td class="px-3 py-2">{{ item.No }}</td>
-                                    <td class="px-3 py-2">{{ item.Bulan }}</td>
-                                    <td class="px-3 py-2">{{ item['Tanggal Kirim'] }}</td>
-                                    <td class="px-3 py-2">{{ item.Warehouse }}</td>
-                                    <td class="px-3 py-2">{{ item['Nama Produk'] }}</td>
-                                    <td class="px-3 py-2">{{ item.QTY }}</td>
-                                    <td class="px-3 py-2">
+                                    <td data-label="No" data-hide-mobile class="px-3 py-2">{{ item.No }}</td>
+                                    <td data-label="Bulan" data-hide-mobile class="px-3 py-2">{{ item.Bulan }}</td>
+                                    <td data-label="Tanggal Kirim" class="px-3 py-2">{{ item['Tanggal Kirim'] }}</td>
+                                    <td data-label="Warehouse" class="px-3 py-2">{{ item.Warehouse }}</td>
+                                    <td data-label="Nama Produk" class="px-3 py-2">{{ item['Nama Produk'] }}</td>
+                                    <td data-label="Qty" class="px-3 py-2">{{ item.QTY }}</td>
+                                    <td data-label="Status" class="px-3 py-2">
                                         <span :class="['inline-block px-2.5 py-1 rounded-full text-xs font-medium', item.Status === 'Sudah Inbound' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700']">
                                             {{ item.Status }}
                                         </span>
                                     </td>
-                                    <td class="px-3 py-2 space-x-2">
+                                    <td data-actions class="px-3 py-2 space-x-2">
                                         <button @click="toggleStatus(item)" class="text-xs px-2 py-1 border border-gray-300 rounded-md hover:bg-gray-100">Toggle</button>
                                         <button v-if="isAdmin" @click="deleteItem(item)" class="text-xs px-2 py-1 border border-red-300 text-red-600 rounded-md hover:bg-red-50">Hapus</button>
                                     </td>
@@ -493,7 +502,7 @@ onMounted(() => {
                         </table>
                     </div>
 
-                    <div class="flex items-center justify-between mt-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mt-4">
                         <p class="text-xs text-gray-500">Halaman {{ currentPage }} dari {{ lastPage }} ({{ stats.total }} total data)</p>
                         <div class="flex gap-2">
                             <button @click="goToPage(currentPage - 1)" :disabled="currentPage <= 1"
@@ -507,7 +516,7 @@ onMounted(() => {
         </div>
 
         <div v-if="showImportModal" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-xl shadow-lg w-full max-w-3xl max-h-[85vh] flex flex-col">
+            <div class="bg-white rounded-xl shadow-lg w-full max-w-3xl max-h-[90dvh] flex flex-col">
                 <div class="p-5 border-b border-gray-100">
                     <h2 class="text-base font-semibold text-gray-900">Preview Import</h2>
                     <p class="text-sm text-gray-500 mt-1">
@@ -518,7 +527,7 @@ onMounted(() => {
 
                 <div class="flex-1 overflow-y-auto p-5">
                     <div class="overflow-x-auto rounded-lg border border-gray-200">
-                        <table class="w-full text-xs">
+                        <table class="w-full min-w-[640px] text-xs">
                             <thead>
                                 <tr class="bg-gray-50 text-gray-600">
                                     <th class="text-left px-2 py-2 font-semibold">#</th>
@@ -563,7 +572,7 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <div v-if="importPhase === 'idle'" class="p-5 border-t border-gray-100 flex items-center justify-end gap-2">
+                <div v-if="importPhase === 'idle'" class="p-4 sm:p-5 border-t border-gray-100 flex flex-wrap items-center justify-end gap-2">
                     <button @click="cancelImport" type="button"
                         class="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
                         Batal

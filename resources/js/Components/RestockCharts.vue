@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
 import { Line, Doughnut, Bar } from 'vue-chartjs';
 import {
     Chart as ChartJS,
@@ -206,7 +206,15 @@ const lineChartData = computed(() => {
     };
 });
 
-const lineChartOptions = {
+// Opsi chart menyesuaikan lebar layar (legend, jumlah label sumbu)
+const isMobile = ref(typeof window !== 'undefined' && window.innerWidth < 640);
+function updateIsMobile() {
+    isMobile.value = window.innerWidth < 640;
+}
+onMounted(() => window.addEventListener('resize', updateIsMobile));
+onBeforeUnmount(() => window.removeEventListener('resize', updateIsMobile));
+
+const lineChartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: 'index' as const, intersect: false },
@@ -225,9 +233,13 @@ const lineChartOptions = {
     },
     scales: {
         y: { beginAtZero: true, grid: { color: '#f1f5f9', drawTicks: false }, border: { display: false } },
-        x: { grid: { display: false }, border: { display: false } },
+        x: {
+            grid: { display: false },
+            border: { display: false },
+            ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: isMobile.value ? 5 : 12 },
+        },
     },
-};
+}));
 
 const donutColors = ['#f97316', '#fb923c', '#fdba74', '#ec4899', '#8b5cf6', '#06b6d4', '#10b981', '#94a3b8'];
 
@@ -236,7 +248,7 @@ const donutChartData = computed(() => ({
     datasets: [{ data: byKota.value.map(k => k.total_qty), backgroundColor: donutColors, borderWidth: 0 }],
 }));
 
-const donutChartOptions = {
+const donutChartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
     cutout: '65%',
@@ -247,8 +259,13 @@ const donutChartOptions = {
             if (kota) selectKota(kota);
         }
     },
-    plugins: { legend: { position: 'right' as const, labels: { boxWidth: 10, font: { size: 11 } } } },
-};
+    plugins: {
+        legend: {
+            position: (isMobile.value ? 'bottom' : 'right') as 'bottom' | 'right',
+            labels: { boxWidth: 10, font: { size: 11 } },
+        },
+    },
+}));
 
 const barChartData = computed(() => ({
     labels: produkMenipis.value.map(p => p.nama_produk.length > 20 ? p.nama_produk.slice(0, 20) + '…' : p.nama_produk),
@@ -260,13 +277,16 @@ const barChartData = computed(() => ({
     }],
 }));
 
-const barChartOptions = {
+const barChartOptions = computed(() => ({
     indexAxis: 'y' as const,
     responsive: true,
     maintainAspectRatio: false,
     plugins: { legend: { display: false } },
-    scales: { x: { grid: { color: '#f1f5f9' } }, y: { grid: { display: false } } },
-};
+    scales: {
+        x: { grid: { color: '#f1f5f9' } },
+        y: { grid: { display: false }, ticks: { font: { size: isMobile.value ? 10 : 12 } } },
+    },
+}));
 
 const totalQtyAllKota = computed(() => byKota.value.reduce((sum, k) => sum + k.total_qty, 0));
 </script>
@@ -285,10 +305,12 @@ const totalQtyAllKota = computed(() => byKota.value.reduce((sum, k) => sum + k.t
                     Bulanan
                 </button>
             </div>
-            <div class="flex flex-wrap gap-2 items-center">
-                <input type="date" v-model="chartDateFrom" class="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" />
-                <span class="text-gray-400 text-xs">—</span>
-                <input type="date" v-model="chartDateTo" class="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" />
+            <div class="flex flex-wrap gap-2 items-center w-full sm:w-auto">
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <input type="date" v-model="chartDateFrom" class="min-w-0 flex-1 sm:flex-none border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                    <span class="text-gray-400 text-xs">—</span>
+                    <input type="date" v-model="chartDateTo" class="min-w-0 flex-1 sm:flex-none border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                </div>
                 <button v-for="p in chartPresets" :key="p.label" @click="applyChartPreset(p.days)" type="button"
                     class="text-xs px-2 py-1 border border-gray-300 rounded-md hover:bg-gray-100 text-gray-600">
                     {{ p.label }}
@@ -301,7 +323,7 @@ const totalQtyAllKota = computed(() => byKota.value.reduce((sum, k) => sum + k.t
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
             <!-- Line chart -->
-            <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5">
                 <h2 class="text-sm font-semibold text-gray-900 mb-4">Tren Restock Masuk vs Keluar</h2>
                 <div class="h-72">
                     <p v-if="loading" class="text-sm text-gray-400 text-center pt-24">Memuat grafik...</p>
@@ -311,10 +333,10 @@ const totalQtyAllKota = computed(() => byKota.value.reduce((sum, k) => sum + k.t
             </div>
 
             <!-- Donut chart -->
-<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5">
     <h2 class="text-sm font-semibold text-gray-900 mb-1">Qty per Warehouse</h2>
     <p class="text-xs text-gray-400 mb-3">Klik salah satu bagian chart untuk detail produk</p>
-    <div class="h-56 relative">
+    <div class="h-72 sm:h-56 relative">
         <p v-if="loading" class="text-sm text-gray-400 text-center pt-20">Memuat...</p>
         <p v-else-if="byKota.length === 0" class="text-sm text-gray-400 text-center pt-20">Tidak ada data.</p>
         <Doughnut v-else :data="donutChartData" :options="donutChartOptions" />
@@ -359,7 +381,7 @@ const totalQtyAllKota = computed(() => byKota.value.reduce((sum, k) => sum + k.t
         </div>
 
         <!-- Bar chart: produk stok menipis -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5">
             <h2 class="text-sm font-semibold text-gray-900 mb-4">8 Produk dengan Stok Paling Menipis</h2>
             <div class="h-64">
                 <p v-if="loading" class="text-sm text-gray-400 text-center pt-24">Memuat...</p>

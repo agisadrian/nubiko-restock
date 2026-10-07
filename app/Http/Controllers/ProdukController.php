@@ -4,13 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Restock;
 use App\Models\StockOut;
+use App\Models\Product;
 use Illuminate\Http\Request;
 
 class ProdukController extends Controller
 {
     public function index(Request $request)
     {
-        // Total masuk per produk (yang statusnya "sudah" inbound aja yang dihitung sebagai stok riil)
         $masuk = Restock::where('status', 'sudah')
             ->selectRaw('nama_produk, sum(qty) as total_masuk')
             ->groupBy('nama_produk')
@@ -20,9 +20,11 @@ class ProdukController extends Controller
             ->groupBy('nama_produk')
             ->pluck('total_keluar', 'nama_produk');
 
+        $stokMinimumMap = Product::pluck('stok_minimum', 'nama_produk');
+
         $semuaProduk = $masuk->keys()->merge($keluar->keys())->unique()->sort()->values();
 
-        $data = $semuaProduk->map(function ($nama) use ($masuk, $keluar) {
+        $data = $semuaProduk->map(function ($nama) use ($masuk, $keluar, $stokMinimumMap) {
             $totalMasuk = (int) ($masuk[$nama] ?? 0);
             $totalKeluar = (int) ($keluar[$nama] ?? 0);
             return [
@@ -30,6 +32,7 @@ class ProdukController extends Controller
                 'total_masuk' => $totalMasuk,
                 'total_keluar' => $totalKeluar,
                 'sisa_stok' => $totalMasuk - $totalKeluar,
+                'stok_minimum' => (int) ($stokMinimumMap[$nama] ?? 10),
             ];
         });
 
