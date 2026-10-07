@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue';
 import AppLayout from '../Layouts/AppLayout.vue';
+import { Boxes, Package, AlertTriangle, XCircle } from 'lucide-vue-next';
 
 interface ProdukItem {
     nama_produk: string;
@@ -56,23 +57,35 @@ onMounted(fetchData);
             </div>
 
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <p class="text-xs text-gray-500 mb-1">Total Produk</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ totalProduk }}</p>
-                </div>
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <p class="text-xs text-gray-500 mb-1">Total Sisa Stok</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ totalSisaStok.toLocaleString() }}</p>
-                </div>
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <p class="text-xs text-gray-500 mb-1">Stok Menipis (≤10)</p>
-                    <p class="text-2xl font-bold text-amber-600">{{ produkStokMenipis }}</p>
-                </div>
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <p class="text-xs text-gray-500 mb-1">Stok Habis</p>
-                    <p class="text-2xl font-bold text-red-600">{{ produkStokHabis }}</p>
-                </div>
-            </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <div class="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center mb-3">
+            <Package :size="18" :stroke-width="2" />
+        </div>
+        <p class="text-xs text-gray-500 mb-1">Total Produk</p>
+        <p class="text-2xl font-bold text-gray-900">{{ totalProduk }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3">
+            <Boxes :size="18" :stroke-width="2" />
+        </div>
+        <p class="text-xs text-gray-500 mb-1">Total Sisa Stok</p>
+        <p class="text-2xl font-bold text-gray-900">{{ totalSisaStok.toLocaleString() }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <div class="w-9 h-9 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center mb-3">
+            <AlertTriangle :size="18" :stroke-width="2" />
+        </div>
+        <p class="text-xs text-gray-500 mb-1">Stok Menipis</p>
+        <p class="text-2xl font-bold text-amber-600">{{ produkStokMenipis }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <div class="w-9 h-9 rounded-lg bg-red-100 text-red-600 flex items-center justify-center mb-3">
+            <XCircle :size="18" :stroke-width="2" />
+        </div>
+        <p class="text-xs text-gray-500 mb-1">Stok Habis</p>
+        <p class="text-2xl font-bold text-red-600">{{ produkStokHabis }}</p>
+    </div>
+</div>
 
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <div class="flex items-center justify-between gap-3 mb-4">

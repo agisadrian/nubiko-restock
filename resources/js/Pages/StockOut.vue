@@ -3,6 +3,7 @@ import { ref, onMounted, watch, computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import AppLayout from '../Layouts/AppLayout.vue';
 
+
 const page = usePage();
 const isAdmin = computed(() => (page.props.auth as any)?.user?.isAdmin ?? false);
 
@@ -216,16 +217,22 @@ onMounted(() => {
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-6">
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <p class="text-xs text-gray-500 mb-1">Total Transaksi Keluar</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ total }}</p>
-                </div>
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <p class="text-xs text-gray-500 mb-1">Total Qty Keluar</p>
-                    <p class="text-2xl font-bold text-red-600">{{ totalQty }}</p>
-                </div>
-            </div>
+           <div class="grid grid-cols-2 gap-4 mb-6">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <div class="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center mb-3">
+            <ClipboardList :size="18" :stroke-width="2" />
+        </div>
+        <p class="text-xs text-gray-500 mb-1">Total Transaksi Keluar</p>
+        <p class="text-2xl font-bold text-gray-900">{{ total }}</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <div class="w-9 h-9 rounded-lg bg-red-100 text-red-600 flex items-center justify-center mb-3">
+            <PackageMinus :size="18" :stroke-width="2" />
+        </div>
+        <p class="text-xs text-gray-500 mb-1">Total Qty Keluar</p>
+        <p class="text-2xl font-bold text-red-600">{{ totalQty }}</p>
+    </div>
+</div>
 
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
                 <h2 class="text-sm font-semibold text-gray-900 mb-4">Catat Stok Keluar</h2>
