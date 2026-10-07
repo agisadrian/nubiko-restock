@@ -2,7 +2,7 @@
 import { ref, onMounted, watch, computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import AppLayout from '../Layouts/AppLayout.vue';
-
+import { ClipboardList, PackageMinus } from 'lucide-vue-next';
 
 const page = usePage();
 const isAdmin = computed(() => (page.props.auth as any)?.user?.isAdmin ?? false);
