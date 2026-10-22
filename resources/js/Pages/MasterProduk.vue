@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue';
-import { usePage } from '@inertiajs/vue3';
-import AppLayout from '../Layouts/AppLayout.vue';
+import { ref, onMounted, watch, computed } from "vue";
+import { usePage } from "@inertiajs/vue3";
+import AppLayout from "../Layouts/AppLayout.vue";
 
 const page = usePage();
-const isAdmin = computed(() => (page.props.auth as any)?.user?.isAdmin ?? false);
+const isAdmin = computed(
+    () => (page.props.auth as any)?.user?.isAdmin ?? false,
+);
 
 interface ProductItem {
     id: number;
     sku: string;
+    tipe: string;
     nama_produk: string;
     kategori: string | null;
     harga: string;
@@ -17,22 +20,27 @@ interface ProductItem {
 
 interface Toast {
     id: number;
-    type: 'success' | 'error';
+    type: "success" | "error";
     message: string;
 }
 
 function getCsrfToken(): string {
-    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    return (
+        document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute("content") || ""
+    );
 }
 
 const products = ref<ProductItem[]>([]);
 const loading = ref(true);
-const searchQuery = ref('');
+const searchQuery = ref("");
 
 const form = ref({
-    sku: '',
-    nama_produk: '',
-    kategori: '',
+    sku: "",
+    tipe: "satuan",
+    nama_produk: "",
+    kategori: "",
     harga: 0,
     stok_minimum: 10,
 });
@@ -42,10 +50,12 @@ const fieldErrors = ref<Record<string, string[]>>({});
 
 const toasts = ref<Toast[]>([]);
 let toastIdCounter = 0;
-function showToast(type: 'success' | 'error', message: string) {
+function showToast(type: "success" | "error", message: string) {
     const id = toastIdCounter++;
     toasts.value.push({ id, type, message });
-    setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id); }, 4000);
+    setTimeout(() => {
+        toasts.value = toasts.value.filter((t) => t.id !== id);
+    }, 4000);
 }
 
 let searchDebounce: ReturnType<typeof setTimeout> | null = null;
@@ -54,12 +64,12 @@ async function fetchProducts() {
     loading.value = true;
     try {
         const params = new URLSearchParams();
-        if (searchQuery.value) params.set('search', searchQuery.value);
+        if (searchQuery.value) params.set("search", searchQuery.value);
         const res = await fetch(`/api/products?${params.toString()}`);
         const json = await res.json();
         products.value = json.data;
     } catch (e) {
-        showToast('error', 'Gagal memuat daftar produk.');
+        showToast("error", "Gagal memuat daftar produk.");
     } finally {
         loading.value = false;
     }
@@ -71,7 +81,14 @@ watch(searchQuery, () => {
 });
 
 function resetForm() {
-    form.value = { sku: '', nama_produk: '', kategori: '', harga: 0, stok_minimum: 10 };
+    form.value = {
+        sku: "",
+        tipe: "satuan",
+        nama_produk: "",
+        kategori: "",
+        harga: 0,
+        stok_minimum: 10,
+    };
     editingId.value = null;
     fieldErrors.value = {};
 }
@@ -80,25 +97,29 @@ function startEdit(product: ProductItem) {
     editingId.value = product.id;
     form.value = {
         sku: product.sku,
+        tipe: product.tipe || "satuan",
         nama_produk: product.nama_produk,
-        kategori: product.kategori || '',
+        kategori: product.kategori || "",
         harga: parseFloat(product.harga),
         stok_minimum: product.stok_minimum,
     };
+    window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 async function submitForm() {
     submitting.value = true;
     fieldErrors.value = {};
     try {
-        const url = editingId.value ? `/api/products/${editingId.value}` : '/api/products';
-        const method = editingId.value ? 'PATCH' : 'POST';
+        const url = editingId.value
+            ? `/api/products/${editingId.value}`
+            : "/api/products";
+        const method = editingId.value ? "PATCH" : "POST";
 
         const res = await fetch(url, {
             method,
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': getCsrfToken(),
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": getCsrfToken(),
             },
             body: JSON.stringify(form.value),
         });
@@ -106,16 +127,21 @@ async function submitForm() {
         if (res.status === 422) {
             const data = await res.json();
             fieldErrors.value = data.errors || {};
-            showToast('error', 'Beberapa isian belum valid.');
+            showToast("error", "Beberapa isian belum valid.");
             return;
         }
         if (!res.ok) throw new Error();
 
-        showToast('success', editingId.value ? 'Produk berhasil diupdate.' : 'Produk berhasil ditambahkan.');
+        showToast(
+            "success",
+            editingId.value
+                ? "Produk berhasil diupdate."
+                : "Produk berhasil ditambahkan.",
+        );
         resetForm();
         await fetchProducts();
     } catch (e) {
-        showToast('error', 'Gagal menyimpan produk.');
+        showToast("error", "Gagal menyimpan produk.");
     } finally {
         submitting.value = false;
     }
@@ -125,38 +151,43 @@ async function deleteProduct(product: ProductItem) {
     if (!confirm(`Hapus produk "${product.nama_produk}"?`)) return;
     try {
         const res = await fetch(`/api/products/${product.id}`, {
-            method: 'DELETE',
-            headers: { 'X-CSRF-TOKEN': getCsrfToken() },
+            method: "DELETE",
+            headers: { "X-CSRF-TOKEN": getCsrfToken() },
         });
         if (!res.ok) throw new Error();
-        showToast('success', 'Produk dihapus.');
+        showToast("success", "Produk dihapus.");
         await fetchProducts();
     } catch (e) {
-        showToast('error', 'Gagal menghapus produk.');
+        showToast("error", "Gagal menghapus produk.");
     }
 }
 
 function formatRupiah(value: string) {
-    return 'Rp' + parseFloat(value).toLocaleString('id-ID');
+    return "Rp" + parseFloat(value).toLocaleString("id-ID");
 }
 
-    const generating = ref(false);
+const generating = ref(false);
 
 async function generateFromRestock() {
-    if (!confirm('Generate produk dari data Restock yang sudah ada? Ini akan menambah produk baru untuk nama yang belum terdaftar.')) return;
+    if (
+        !confirm(
+            "Generate produk dari data Restock yang sudah ada? Ini akan menambah produk baru untuk nama yang belum terdaftar.",
+        )
+    )
+        return;
 
     generating.value = true;
     try {
-        const res = await fetch('/api/products/generate-from-restock', {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': getCsrfToken() },
+        const res = await fetch("/api/products/generate-from-restock", {
+            method: "POST",
+            headers: { "X-CSRF-TOKEN": getCsrfToken() },
         });
         if (!res.ok) throw new Error();
         const json = await res.json();
-        showToast('success', json.message);
+        showToast("success", json.message);
         await fetchProducts();
     } catch (e) {
-        showToast('error', 'Gagal generate produk.');
+        showToast("error", "Gagal generate produk.");
     } finally {
         generating.value = false;
     }
@@ -167,112 +198,295 @@ onMounted(fetchProducts);
 
 <template>
     <AppLayout>
-        <div class="fixed top-16 lg:top-4 left-4 right-4 sm:left-auto z-50 flex flex-col gap-2 sm:w-80 pointer-events-none">
+        <div
+            class="fixed top-16 lg:top-4 left-4 right-4 sm:left-auto z-50 flex flex-col gap-2 sm:w-80 pointer-events-none"
+        >
             <transition-group name="toast">
-                <div v-for="toast in toasts" :key="toast.id"
-                    :class="['rounded-lg shadow-md px-4 py-3 text-sm font-medium text-white flex items-start gap-2', toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600']">
-                    <span>{{ toast.type === 'success' ? '✓' : '✕' }}</span>
+                <div
+                    v-for="toast in toasts"
+                    :key="toast.id"
+                    :class="[
+                        'rounded-lg shadow-md px-4 py-3 text-sm font-medium text-white flex items-start gap-2',
+                        toast.type === 'success'
+                            ? 'bg-emerald-600'
+                            : 'bg-red-600',
+                    ]"
+                >
+                    <span>{{ toast.type === "success" ? "✓" : "✕" }}</span>
                     <span>{{ toast.message }}</span>
                 </div>
             </transition-group>
         </div>
 
         <div class="max-w-5xl mx-auto">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
-    <div>
-        <h1 class="text-lg font-semibold text-gray-900">Master Produk</h1>
-        <p class="text-sm text-gray-500">Kelola SKU, kategori, harga, dan ambang stok minimum</p>
-    </div>
-    <button @click="generateFromRestock" :disabled="generating"
-        class="w-full sm:w-auto bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-sm font-medium text-gray-700 rounded-lg px-4 py-2 transition">
-        {{ generating ? 'Memproses...' : '⚡ Generate dari Data Restock' }}
-    </button>
-</div>
+            <div
+                class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6"
+            >
+                <div>
+                    <h1 class="text-lg font-semibold text-gray-900">
+                        Master Produk
+                    </h1>
+                    <p class="text-sm text-gray-500">
+                        Kelola SKU, tipe, kategori, harga, dan ambang stok
+                        minimum
+                    </p>
+                </div>
+                <button
+                    @click="generateFromRestock"
+                    :disabled="generating"
+                    class="w-full sm:w-auto bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-sm font-medium text-gray-700 rounded-lg px-4 py-2 transition"
+                >
+                    {{
+                        generating
+                            ? "Memproses..."
+                            : "⚡ Generate dari Data Restock"
+                    }}
+                </button>
+            </div>
 
-           <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
-    <h2 class="text-sm font-semibold text-gray-900 mb-4">{{ editingId ? 'Edit Produk' : 'Tambah Produk Baru' }}</h2>
-    <form @submit.prevent="submitForm" class="flex flex-col gap-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-medium text-gray-600">SKU</label>
-                <input type="text" v-model="form.sku" required placeholder="NB-001"
-                    :class="['border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2', fieldErrors.sku ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-indigo-500']" />
-                <p v-if="fieldErrors.sku" class="text-xs text-red-600">{{ fieldErrors.sku[0] }}</p>
+            <div
+                class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5 mb-6"
+            >
+                <h2 class="text-sm font-semibold text-gray-900 mb-4">
+                    {{ editingId ? "Edit Produk" : "Tambah Produk Baru" }}
+                </h2>
+                <form
+                    @submit.prevent="submitForm"
+                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 items-start"
+                >
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs text-gray-500">SKU</label>
+                        <input
+                            type="text"
+                            v-model="form.sku"
+                            required
+                            placeholder="NB-001"
+                            :class="[
+                                'border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2',
+                                fieldErrors.sku
+                                    ? 'border-red-400 focus:ring-red-400'
+                                    : 'border-gray-300 focus:ring-indigo-500',
+                            ]"
+                        />
+                        <p v-if="fieldErrors.sku" class="text-xs text-red-600">
+                            {{ fieldErrors.sku[0] }}
+                        </p>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs text-gray-500">Tipe</label>
+                        <select
+                            v-model="form.tipe"
+                            :class="[
+                                'border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 bg-white',
+                                fieldErrors.tipe
+                                    ? 'border-red-400 focus:ring-red-400'
+                                    : 'border-gray-300 focus:ring-indigo-500',
+                            ]"
+                        >
+                            <option value="satuan">Satuan</option>
+                            <option value="bundling">Bundling</option>
+                        </select>
+                        <p v-if="fieldErrors.tipe" class="text-xs text-red-600">
+                            {{ fieldErrors.tipe[0] }}
+                        </p>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs text-gray-500">Nama Produk</label>
+                        <input
+                            type="text"
+                            v-model="form.nama_produk"
+                            required
+                            placeholder="Nubiko Serum 30ml"
+                            :class="[
+                                'border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2',
+                                fieldErrors.nama_produk
+                                    ? 'border-red-400 focus:ring-red-400'
+                                    : 'border-gray-300 focus:ring-indigo-500',
+                            ]"
+                        />
+                        <p
+                            v-if="fieldErrors.nama_produk"
+                            class="text-xs text-red-600"
+                        >
+                            {{ fieldErrors.nama_produk[0] }}
+                        </p>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs text-gray-500">Kategori</label>
+                        <input
+                            type="text"
+                            v-model="form.kategori"
+                            placeholder="Skincare"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs text-gray-500">Harga (Rp)</label>
+                        <input
+                            type="number"
+                            v-model.number="form.harga"
+                            min="0"
+                            step="100"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs text-gray-500"
+                            >Stok Minimum</label
+                        >
+                        <input
+                            type="number"
+                            v-model.number="form.stok_minimum"
+                            min="0"
+                            class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                    </div>
+                    <div class="flex gap-2 sm:col-span-2 lg:col-span-1 lg:mt-5">
+                        <button
+                            type="submit"
+                            :disabled="submitting"
+                            class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg px-4 py-2 transition h-[38px] flex-1 lg:flex-none"
+                        >
+                            {{
+                                submitting
+                                    ? "Menyimpan..."
+                                    : editingId
+                                      ? "Update"
+                                      : "Tambah"
+                            }}
+                        </button>
+                        <button
+                            v-if="editingId"
+                            type="button"
+                            @click="resetForm"
+                            class="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 h-[38px] flex-1 lg:flex-none"
+                        >
+                            Batal
+                        </button>
+                    </div>
+                </form>
             </div>
-            <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-medium text-gray-600">Nama Produk</label>
-                <input type="text" v-model="form.nama_produk" required placeholder="Nubiko Serum 30ml"
-                    :class="['border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2', fieldErrors.nama_produk ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-indigo-500']" />
-                <p v-if="fieldErrors.nama_produk" class="text-xs text-red-600">{{ fieldErrors.nama_produk[0] }}</p>
-            </div>
-        </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-medium text-gray-600">Kategori</label>
-                <input type="text" v-model="form.kategori" placeholder="Skincare"
-                    class="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            </div>
-            <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-medium text-gray-600">Harga (Rp)</label>
-                <input type="number" v-model.number="form.harga" min="0" step="100"
-                    class="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            </div>
-            <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-medium text-gray-600">Stok Minimum</label>
-                <input type="number" v-model.number="form.stok_minimum" min="0"
-                    class="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            </div>
-        </div>
-
-        <div class="flex gap-2">
-            <button type="submit" :disabled="submitting"
-                class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg px-5 py-2.5 transition">
-                {{ submitting ? 'Menyimpan...' : (editingId ? 'Update Produk' : 'Tambah Produk') }}
-            </button>
-            <button v-if="editingId" type="button" @click="resetForm"
-                class="px-5 py-2.5 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
-                Batal
-            </button>
-        </div>
-    </form>
-</div>
-
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-                    <h2 class="text-sm font-semibold text-gray-900">Daftar Produk ({{ products.length }})</h2>
-                    <input v-model="searchQuery" type="text" placeholder="Cari SKU / nama produk..."
-                        class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-full sm:w-56 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <div
+                class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5"
+            >
+                <div
+                    class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4"
+                >
+                    <h2 class="text-sm font-semibold text-gray-900">
+                        Daftar Produk ({{ products.length }})
+                    </h2>
+                    <input
+                        v-model="searchQuery"
+                        type="text"
+                        placeholder="Cari SKU / nama produk..."
+                        class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-full sm:w-56 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
                 </div>
 
-                <p v-if="loading" class="text-sm text-gray-500 py-6 text-center">Memuat data...</p>
+                <p
+                    v-if="loading"
+                    class="text-sm text-gray-500 py-6 text-center"
+                >
+                    Memuat data...
+                </p>
 
-                <div v-else class="overflow-x-auto rounded-lg border border-gray-200">
+                <div
+                    v-else
+                    class="overflow-x-auto rounded-lg border border-gray-200"
+                >
                     <table class="table-stack w-full text-sm">
                         <thead>
                             <tr class="bg-indigo-50 text-gray-700">
-                                <th class="text-left px-3 py-2 font-semibold">SKU</th>
-                                <th class="text-left px-3 py-2 font-semibold">Nama Produk</th>
-                                <th class="text-left px-3 py-2 font-semibold">Kategori</th>
-                                <th class="text-left px-3 py-2 font-semibold">Harga</th>
-                                <th class="text-left px-3 py-2 font-semibold">Stok Min.</th>
-                                <th class="text-left px-3 py-2 font-semibold">Aksi</th>
+                                <th class="text-left px-3 py-2 font-semibold">
+                                    SKU
+                                </th>
+                                <th class="text-left px-3 py-2 font-semibold">
+                                    Tipe
+                                </th>
+                                <th class="text-left px-3 py-2 font-semibold">
+                                    Nama Produk
+                                </th>
+                                <th class="text-left px-3 py-2 font-semibold">
+                                    Kategori
+                                </th>
+                                <th class="text-left px-3 py-2 font-semibold">
+                                    Harga
+                                </th>
+                                <th class="text-left px-3 py-2 font-semibold">
+                                    Stok Min.
+                                </th>
+                                <th class="text-left px-3 py-2 font-semibold">
+                                    Aksi
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="p in products" :key="p.id" class="border-t border-gray-100 hover:bg-gray-50">
-                                <td data-label="SKU" class="px-3 py-2 font-mono text-xs whitespace-nowrap">{{ p.sku }}</td>
-                                <td data-label="Nama Produk" class="px-3 py-2">{{ p.nama_produk }}</td>
-                                <td data-label="Kategori" class="px-3 py-2 text-gray-500">{{ p.kategori || '-' }}</td>
-                                <td data-label="Harga" class="px-3 py-2">{{ formatRupiah(p.harga) }}</td>
-                                <td data-label="Stok Min." class="px-3 py-2">{{ p.stok_minimum }}</td>
+                            <tr
+                                v-for="p in products"
+                                :key="p.id"
+                                class="border-t border-gray-100 hover:bg-gray-50"
+                            >
+                                <td
+                                    data-label="SKU"
+                                    class="px-3 py-2 font-mono text-xs whitespace-nowrap"
+                                >
+                                    {{ p.sku }}
+                                </td>
+                                <td data-label="Tipe" class="px-3 py-2">
+                                    <span
+                                        :class="[
+                                            'inline-block px-2.5 py-1 rounded-full text-xs font-medium',
+                                            p.tipe === 'bundling'
+                                                ? 'bg-purple-100 text-purple-700'
+                                                : 'bg-gray-100 text-gray-600',
+                                        ]"
+                                    >
+                                        {{
+                                            p.tipe === "bundling"
+                                                ? "Bundling"
+                                                : "Satuan"
+                                        }}
+                                    </span>
+                                </td>
+                                <td data-label="Nama Produk" class="px-3 py-2">
+                                    {{ p.nama_produk }}
+                                </td>
+                                <td
+                                    data-label="Kategori"
+                                    class="px-3 py-2 text-gray-500"
+                                >
+                                    {{ p.kategori || "-" }}
+                                </td>
+                                <td data-label="Harga" class="px-3 py-2">
+                                    {{ formatRupiah(p.harga) }}
+                                </td>
+                                <td data-label="Stok Min." class="px-3 py-2">
+                                    {{ p.stok_minimum }}
+                                </td>
                                 <td data-actions class="px-3 py-2 space-x-2">
-                                    <button @click="startEdit(p)" class="text-xs px-2 py-1 border border-gray-300 rounded-md hover:bg-gray-100">Edit</button>
-                                    <button v-if="isAdmin" @click="deleteProduct(p)" class="text-xs px-2 py-1 border border-red-300 text-red-600 rounded-md hover:bg-red-50">Hapus</button>
+                                    <button
+                                        @click="startEdit(p)"
+                                        class="text-xs px-2 py-1 border border-gray-300 rounded-md hover:bg-gray-100"
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        v-if="isAdmin"
+                                        @click="deleteProduct(p)"
+                                        class="text-xs px-2 py-1 border border-red-300 text-red-600 rounded-md hover:bg-red-50"
+                                    >
+                                        Hapus
+                                    </button>
                                 </td>
                             </tr>
                             <tr v-if="products.length === 0">
-                                <td colspan="6" class="text-center text-gray-400 py-8">Belum ada produk master.</td>
+                                <td
+                                    colspan="7"
+                                    class="text-center text-gray-400 py-8"
+                                >
+                                    Belum ada produk master.
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -283,6 +497,13 @@ onMounted(fetchProducts);
 </template>
 
 <style scoped>
-.toast-enter-active, .toast-leave-active { transition: all 0.3s ease; }
-.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateX(30px); }
+.toast-enter-active,
+.toast-leave-active {
+    transition: all 0.3s ease;
+}
+.toast-enter-from,
+.toast-leave-to {
+    opacity: 0;
+    transform: translateX(30px);
+}
 </style>

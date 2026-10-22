@@ -29,6 +29,7 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'sku' => 'required|string|max:100|unique:products,sku',
+            'tipe' => 'sometimes|in:satuan,bundling',
             'nama_produk' => 'required|string|max:255',
             'kategori' => 'nullable|string|max:100',
             'harga' => 'nullable|numeric|min:0',
@@ -46,6 +47,7 @@ class ProductController extends Controller
 
         $validated = $request->validate([
             'sku' => 'required|string|max:100|unique:products,sku,' . $id,
+            'tipe' => 'sometimes|in:satuan,bundling',
             'nama_produk' => 'required|string|max:255',
             'kategori' => 'nullable|string|max:100',
             'harga' => 'nullable|numeric|min:0',
@@ -65,47 +67,55 @@ class ProductController extends Controller
     }
 
     public function generateFromRestock()
-{
-    $existingNames = Product::pluck('nama_produk')->toArray();
+    {
+        $existingNames = Product::pluck('nama_produk')->toArray();
 
-    $namaProdukRestock = Restock::select('nama_produk')
-        ->distinct()
-        ->pluck('nama_produk');
+        $namaProdukRestock = Restock::select('nama_produk')
+            ->distinct()
+            ->pluck('nama_produk');
 
-    $toCreate = $namaProdukRestock->diff($existingNames)->values();
+        $toCreate = $namaProdukRestock->diff($existingNames)->values();
 
-    $lastNumber = Product::where('sku', 'like', 'AUTO-%')
-        ->get()
-        ->map(fn($p) => (int) str_replace('AUTO-', '', $p->sku))
-        ->max() ?? 0;
+        $lastNumber = Product::where('sku', 'like', 'AUTO-%')
+            ->get()
+            ->map(fn($p) => (int) str_replace('AUTO-', '', $p->sku))
+            ->max() ?? 0;
 
-    $rows = [];
-    $now = now();
-    foreach ($toCreate as $nama) {
-        $lastNumber++;
-        $rows[] = [
-            'sku' => 'AUTO-' . str_pad($lastNumber, 4, '0', STR_PAD_LEFT),
-            'nama_produk' => $nama,
-            'kategori' => null,
-            'harga' => 0,
-            'stok_minimum' => 10,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ];
-    }
-
-    if (count($rows) > 0) {
-        foreach (array_chunk($rows, 100) as $chunk) {
-            Product::insert($chunk);
+        $rows = [];
+        $now = now();
+        foreach ($toCreate as $nama) {
+            $lastNumber++;
+            $rows[] = [
+                'sku' => 'AUTO-' . str_pad($lastNumber, 4, '0', STR_PAD_LEFT),
+                'nama_produk' => $nama,
+                'kategori' => null,
+                'harga' => 0,
+                'stok_minimum' => 10,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
         }
+
+        if (count($rows) > 0) {
+            foreach (array_chunk($rows, 100) as $chunk) {
+                Product::insert($chunk);
+            }
+        }
+
+        return response()->json(['message' => 'Berhasil generate ' . count($rows) . ' produk baru', 'count' => count($rows)]);
     }
 
-    return response()->json(['message' => 'Berhasil generate ' . count($rows) . ' produk baru', 'count' => count($rows)]);
-}
+    public function listNames()
+    {
+        $names = Product::orderBy('nama_produk')->pluck('nama_produk');
 
-public function listNames()
-{
-    $names = Product::orderBy('nama_produk')->pluck('nama_produk');
-    return response()->json(['data' => $names]);
-}
+        return response()->json(['data' => $names]);
+    }
+
+    public function options()
+    {
+        $products = Product::orderBy('nama_produk')->get(['sku', 'nama_produk', 'tipe']);
+
+        return response()->json(['data' => $products]);
+    }
 }
