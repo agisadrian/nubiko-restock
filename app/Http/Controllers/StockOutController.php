@@ -240,6 +240,7 @@ class StockOutController extends Controller
         $now = now();
         $records = collect($validated['rows'])->map(fn($row) => [
             'tanggal_keluar' => $row['tanggal_keluar'],
+            'sku' => $row['sku'],
             'nama_produk' => $products[$row['sku']]->nama_produk,
             'qty' => $row['qty'],
             'keterangan' => $row['keterangan'] ?? null,
