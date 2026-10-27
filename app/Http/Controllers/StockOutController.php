@@ -17,6 +17,14 @@ class StockOutController extends Controller
     {
         $query = StockOut::query();
 
+        if ($request->filled('warehouse')) {
+            $query->where('warehouse', $request->warehouse);
+        }
+
+        if ($request->filled('nama_produk')) {
+            $query->where('nama_produk', $request->nama_produk);
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {

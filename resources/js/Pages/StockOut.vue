@@ -59,6 +59,8 @@ const total = ref(0);
 const searchQuery = ref("");
 const dateFrom = ref("");
 const dateTo = ref("");
+const produkFilter = ref("");
+const daftarProduk = ref<string[]>([]);
 
 const presetRanges = [
     { label: 'Kemarin', days: 1 },
@@ -141,6 +143,7 @@ async function fetchData(page = 1) {
     errorMsg.value = "";
     try {
         const params = new URLSearchParams();
+        if (produkFilter.value) params.set("nama_produk", produkFilter.value);
         params.set("page", String(page));
         if (searchQuery.value) params.set("search", searchQuery.value);
         if (dateFrom.value) params.set("date_from", dateFrom.value);
@@ -163,7 +166,7 @@ async function fetchData(page = 1) {
     }
 }
 
-watch([searchQuery, dateFrom, dateTo], () => {
+watch([searchQuery, produkFilter, dateFrom, dateTo], () => {
     if (searchDebounce) clearTimeout(searchDebounce);
     searchDebounce = setTimeout(() => fetchData(1), 400);
 });
@@ -222,6 +225,7 @@ async function deleteItem(item: StockOutItem) {
 
 function exportStockOut(format: "excel" | "csv" | "pdf") {
     const params = new URLSearchParams();
+    if (produkFilter.value) params.set("nama_produk", produkFilter.value);
     if (searchQuery.value) params.set("search", searchQuery.value);
     if (dateFrom.value) params.set("date_from", dateFrom.value);
     if (dateTo.value) params.set("date_to", dateTo.value);
@@ -627,6 +631,10 @@ onMounted(() => {
                                 placeholder="Cari SKU / nama produk..."
                                 class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-full sm:w-48 focus:outline-none focus:ring-2 focus:ring-orange-500"
                             />
+                            <select v-model="produkFilter" class="w-full sm:w-64 truncate border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="">Semua Produk</option>
+                                <option v-for="p in daftarProduk" :key="p" :value="p">{{ p }}</option>
+                            </select>
                             <button
                                 @click="exportStockOut('excel')"
                                 type="button"

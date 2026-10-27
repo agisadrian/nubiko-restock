@@ -49,6 +49,7 @@ const currentPage = ref(1);
 const lastPage = ref(1);
 
 const searchQuery = ref('');
+const produkFilter = ref('');
 const statusFilter = ref('');
 
 const dateFrom = ref('');
@@ -107,6 +108,7 @@ async function fetchData(page = 1) {
         params.set('page', String(page));
         if (searchQuery.value) params.set('search', searchQuery.value);
         if (statusFilter.value) params.set('status', statusFilter.value);
+        if (produkFilter.value) params.set('nama_produk', produkFilter.value);
         if (dateFrom.value) params.set('date_from', dateFrom.value);
         if (dateTo.value) params.set('date_to', dateTo.value);
 
@@ -126,7 +128,7 @@ async function fetchData(page = 1) {
     }
 }
 
-watch([searchQuery, statusFilter, dateFrom, dateTo], () => {
+watch([searchQuery, statusFilter, produkFilter, dateFrom, dateTo], () => {
     if (searchDebounce) clearTimeout(searchDebounce);
     searchDebounce = setTimeout(() => fetchData(1), 400);
 });
@@ -205,6 +207,7 @@ function exportRestock(format: 'excel' | 'csv' | 'pdf') {
     const params = new URLSearchParams();
     if (searchQuery.value) params.set('search', searchQuery.value);
     if (statusFilter.value) params.set('status', statusFilter.value);
+    if (produkFilter.value) params.set('nama_produk', produkFilter.value);
     if (dateFrom.value) params.set('date_from', dateFrom.value);
     if (dateTo.value) params.set('date_to', dateTo.value);
 
@@ -481,6 +484,10 @@ onMounted(() => {
                     <div class="flex flex-wrap gap-2 items-center">
                         <input v-model="searchQuery" type="text" placeholder="Cari nama produk / warehouse..."
                             class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-full sm:w-56 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        <select v-model="produkFilter" class="w-full sm:w-64 truncate border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">Semua Produk</option>
+                            <option v-for="p in daftarProduk" :key="p" :value="p">{{ p }}</option>
+                        </select>
                         <select v-model="statusFilter" class="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             <option value="">Semua Status</option>
                             <option value="sudah">Sudah Inbound</option>
@@ -543,7 +550,7 @@ onMounted(() => {
                                     </td>
                                 </tr>
                                 <tr v-if="items.length === 0">
-                                    <td colspan="8" class="text-center text-gray-400 py-8">Tidak ada data yang cocok.</td>
+                                    <td colspan="9" class="text-center text-gray-400 py-8">Tidak ada data yang cocok.</td>
                                 </tr>
                             </tbody>
                         </table>

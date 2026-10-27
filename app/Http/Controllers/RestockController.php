@@ -27,6 +27,10 @@ class RestockController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('nama_produk')) {
+            $query->where('nama_produk', $request->nama_produk);
+        }
+
         if ($request->filled('date_from')) {
             $query->whereDate('tanggal_kirim', '>=', $request->date_from);
         }
