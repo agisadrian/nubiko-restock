@@ -119,6 +119,7 @@ async function fetchDaftarProduk() {
         const res = await fetch("/api/products/options");
         const json = await res.json();
         produkOptions.value = json.data;
+        daftarProduk.value = json.data.map((p: { nama_produk: string }) => p.nama_produk);
     } catch (e) {
         console.error("Gagal memuat daftar produk", e);
     }
