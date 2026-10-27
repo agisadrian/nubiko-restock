@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Restock;
+use App\Exports\RestockExport;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
 
 class RestockController extends Controller
 {
-    public function index(Request $request)
+    private function buildQuery(Request $request)
     {
         $query = Restock::query();
 
@@ -31,6 +34,13 @@ class RestockController extends Controller
         if ($request->filled('date_to')) {
             $query->whereDate('tanggal_kirim', '<=', $request->date_to);
         }
+
+        return $query;
+    }
+
+    public function index(Request $request)
+    {
+        $query = $this->buildQuery($request);
 
         $statsResult = (clone $query)->selectRaw("
             count(*) as total,
@@ -158,6 +168,12 @@ class RestockController extends Controller
         ]);
     }
 
+    public function productNames()
+    {
+        $names = \App\Models\Product::orderBy('nama_produk')->pluck('nama_produk');
+        return response()->json(['data' => $names]);
+    }
+
     public function listProduk()
     {
         $produk = Restock::where('status', 'sudah')
@@ -251,5 +267,54 @@ class RestockController extends Controller
         }
 
         return response()->json(['message' => 'Import berhasil', 'count' => count($validated['rows'])]);
+    }
+
+    public function exportCsv(Request $request)
+    {
+        $query = $this->buildQuery($request)->orderBy('tanggal_kirim', 'asc')->orderBy('id', 'asc');
+        $items = $query->get();
+        $filename = 'laporan-restock-' . now()->format('Ymd_His') . '.csv';
+
+        return Excel::download(new RestockExport($items, $request->all()), $filename, \Maatwebsite\Excel\Excel::CSV, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $query = $this->buildQuery($request)->orderBy('tanggal_kirim', 'asc')->orderBy('id', 'asc');
+        $items = $query->get();
+        $filename = 'laporan-restock-' . now()->format('Ymd_His') . '.xlsx';
+
+        return Excel::download(new RestockExport($items, $request->all()), $filename);
+    }
+
+    public function exportPdf(Request $request)
+    {
+        ini_set('memory_limit', '512M');
+        set_time_limit(180);
+
+        $query = $this->buildQuery($request)->orderBy('tanggal_kirim', 'asc')->orderBy('id', 'asc');
+        $items = $query->get();
+        $totalQty = $items->sum('qty');
+        $totalSudah = $items->where('status', 'sudah')->count();
+        $totalBelum = $items->where('status', 'belum')->count();
+
+        $pdf = Pdf::loadView('exports.restock-pdf', [
+            'items' => $items,
+            'totalQty' => $totalQty,
+            'totalSudah' => $totalSudah,
+            'totalBelum' => $totalBelum,
+            'filters' => [
+                'search' => $request->search,
+                'status' => $request->status,
+                'date_from' => $request->date_from,
+                'date_to' => $request->date_to,
+            ],
+            'printedAt' => now()->translatedFormat('d F Y, H:i'),
+        ])->setPaper('a4', 'landscape');
+
+        $filename = 'laporan-restock-' . now()->format('Ymd_His') . '.pdf';
+        return $pdf->download($filename);
     }
 }

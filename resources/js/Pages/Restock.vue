@@ -2,7 +2,7 @@
 import { ref, onMounted, watch, computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import AppLayout from '../Layouts/AppLayout.vue';
-import { ClipboardList, Package, CheckCircle2, Clock } from 'lucide-vue-next';
+import { ClipboardList, Package, CheckCircle2, Clock, FileSpreadsheet, FileText } from 'lucide-vue-next';
 
 const page = usePage();
 const isAdmin = computed(() => (page.props.auth as any)?.user?.isAdmin ?? false);
@@ -197,6 +197,22 @@ async function deleteItem(item: RestockItem) {
     } catch (e) {
         showToast('error', 'Gagal menghapus data.');
     }
+}
+
+function exportRestock(format: 'excel' | 'csv' | 'pdf') {
+    const params = new URLSearchParams();
+    if (searchQuery.value) params.set('search', searchQuery.value);
+    if (statusFilter.value) params.set('status', statusFilter.value);
+    if (dateFrom.value) params.set('date_from', dateFrom.value);
+    if (dateTo.value) params.set('date_to', dateTo.value);
+
+    const url = `/api/restock/export-${format}?${params.toString()}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', '');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
 }
 
 const importing = ref(false);
@@ -432,7 +448,30 @@ onMounted(() => {
 
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5">
                 <div class="flex flex-col gap-3 mb-4">
-                    <h2 class="text-sm font-semibold text-gray-900">Daftar Restock</h2>
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <h2 class="text-sm font-semibold text-gray-900">Daftar Restock</h2>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button
+                                @click="exportRestock('excel')"
+                                type="button"
+                                title="Download format Excel (.xlsx) dengan styling & ringkasan untuk presentasi"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 rounded-lg transition shadow-sm"
+                            >
+                                <FileSpreadsheet class="w-3.5 h-3.5 text-emerald-700" />
+                                <span>Export Excel (.xlsx)</span>
+                            </button>
+
+                            <button
+                                @click="exportRestock('pdf')"
+                                type="button"
+                                title="Download format PDF (Cetak)"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition shadow-sm"
+                            >
+                                <FileText class="w-3.5 h-3.5 text-rose-600" />
+                                <span>Export PDF</span>
+                            </button>
+                        </div>
+                    </div>
                     <div class="flex flex-wrap gap-2 items-center">
                         <input v-model="searchQuery" type="text" placeholder="Cari nama produk / warehouse..."
                             class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-full sm:w-56 focus:outline-none focus:ring-2 focus:ring-indigo-500" />

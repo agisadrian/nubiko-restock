@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Restock;
 use App\Models\StockOut;
+use App\Exports\StockOutExport;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
 
 class StockOutController extends Controller
 {
-    public function index(Request $request)
+    private function buildQuery(Request $request)
     {
         $query = StockOut::query();
 
@@ -21,6 +24,21 @@ class StockOutController extends Controller
                   ->orWhere('sku', 'ilike', "%{$search}%");
             });
         }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('tanggal_keluar', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('tanggal_keluar', '<=', $request->date_to);
+        }
+
+        return $query;
+    }
+
+    public function index(Request $request)
+    {
+        $query = $this->buildQuery($request);
 
         $perPage = 25;
         $paginated = $query->orderByDesc('tanggal_keluar')->paginate($perPage);
@@ -233,5 +251,49 @@ class StockOutController extends Controller
         StockOut::insert($records);
 
         return response()->json(['message' => 'Import berhasil', 'count' => count($records)]);
+    }
+
+    public function exportCsv(Request $request)
+    {
+        $query = $this->buildQuery($request)->orderBy('tanggal_keluar', 'asc')->orderBy('id', 'asc');
+        $items = $query->get();
+        $filename = 'laporan-stok-keluar-' . now()->format('Ymd_His') . '.csv';
+
+        return Excel::download(new StockOutExport($items, $request->all()), $filename, \Maatwebsite\Excel\Excel::CSV, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $query = $this->buildQuery($request)->orderBy('tanggal_keluar', 'asc')->orderBy('id', 'asc');
+        $items = $query->get();
+        $filename = 'laporan-stok-keluar-' . now()->format('Ymd_His') . '.xlsx';
+
+        return Excel::download(new StockOutExport($items, $request->all()), $filename);
+    }
+
+    public function exportPdf(Request $request)
+    {
+        ini_set('memory_limit', '512M');
+        set_time_limit(180);
+
+        $query = $this->buildQuery($request)->orderBy('tanggal_keluar', 'asc')->orderBy('id', 'asc');
+        $items = $query->get();
+        $totalQty = $items->sum('qty');
+
+        $pdf = Pdf::loadView('exports.stock-out-pdf', [
+            'items' => $items,
+            'totalQty' => $totalQty,
+            'filters' => [
+                'search' => $request->search,
+                'date_from' => $request->date_from,
+                'date_to' => $request->date_to,
+            ],
+            'printedAt' => now()->translatedFormat('d F Y, H:i'),
+        ])->setPaper('a4', 'portrait');
+
+        $filename = 'laporan-stok-keluar-' . now()->format('Ymd_His') . '.pdf';
+        return $pdf->download($filename);
     }
 }

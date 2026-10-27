@@ -58,11 +58,16 @@ Route::middleware('auth')->group(function () {
     Route::patch('/products/{id}', [ProductController::class, 'update']);
     Route::delete('/products/{id}', [ProductController::class, 'destroy'])->middleware('admin');
     Route::post('/products/generate-from-restock', [ProductController::class, 'generateFromRestock']);
-    Route::get('/products/list-names', [ProductController::class, 'listNames']);
     });
+
+        Route::get('/products/options', [ProductController::class, 'options']);
+        Route::get('/products/list-names', [ProductController::class, 'listNames']);
 
         Route::get('/restock', [RestockController::class, 'index']);
         Route::post('/restock', [RestockController::class, 'store']);
+        Route::get('/restock/export-excel', [RestockController::class, 'exportExcel']);
+        Route::get('/restock/export-csv', [RestockController::class, 'exportCsv']);
+        Route::get('/restock/export-pdf', [RestockController::class, 'exportPdf']);
         Route::get('/restock/list-produk', [RestockController::class, 'listProduk']);
         Route::patch('/restock/{id}/status', [RestockController::class, 'updateStatus']);
         Route::delete('/restock/{id}', [RestockController::class, 'destroy'])->middleware('admin');
@@ -74,9 +79,13 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/stock-out', [StockOutController::class, 'index']);
         Route::post('/stock-out', [StockOutController::class, 'store']);
+        Route::get('/stock-out/export-excel', [StockOutController::class, 'exportExcel']);
+        Route::get('/stock-out/export-csv', [StockOutController::class, 'exportCsv']);
+        Route::get('/stock-out/export-pdf', [StockOutController::class, 'exportPdf']);
         Route::delete('/stock-out/{id}', [StockOutController::class, 'destroy'])->middleware('admin');
         Route::get('/stock-out/chart-stats', [StockOutController::class, 'chartStats']);
-        Route::post('/stock-out/import', [StockOutController::class, 'import']);
+        Route::post('/stock-out/import-preview', [StockOutController::class, 'importPreview']);
+        Route::post('/stock-out/import-confirm', [StockOutController::class, 'importConfirm']);
 
         Route::get('/produk', [ProdukController::class, 'index']);
     });

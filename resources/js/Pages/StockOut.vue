@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from "vue";
 import { usePage } from "@inertiajs/vue3";
-import { ClipboardList, PackageMinus, Search } from "lucide-vue-next";
+import { ClipboardList, PackageMinus, Search, FileSpreadsheet, FileText } from "lucide-vue-next";
 import AppLayout from "../Layouts/AppLayout.vue";
 
 const page = usePage();
@@ -57,6 +57,33 @@ const currentPage = ref(1);
 const lastPage = ref(1);
 const total = ref(0);
 const searchQuery = ref("");
+const dateFrom = ref("");
+const dateTo = ref("");
+
+const presetRanges = [
+    { label: 'Kemarin', days: 1 },
+    { label: '7 hari', days: 7 },
+    { label: '30 hari', days: 30 },
+    { label: '90 hari', days: 90 },
+    { label: '365 hari', days: 365 },
+];
+
+function formatDateForApi(date: Date): string {
+    return date.toISOString().split('T')[0];
+}
+
+function applyPreset(days: number) {
+    const today = new Date();
+    const from = new Date();
+    from.setDate(today.getDate() - (days - 1));
+    dateFrom.value = formatDateForApi(from);
+    dateTo.value = formatDateForApi(today);
+}
+
+function clearDateFilter() {
+    dateFrom.value = '';
+    dateTo.value = '';
+}
 
 // ---- Pilihan produk (dari Master Produk) ----
 const produkOptions = ref<ProdukOption[]>([]);
@@ -116,6 +143,8 @@ async function fetchData(page = 1) {
         const params = new URLSearchParams();
         params.set("page", String(page));
         if (searchQuery.value) params.set("search", searchQuery.value);
+        if (dateFrom.value) params.set("date_from", dateFrom.value);
+        if (dateTo.value) params.set("date_to", dateTo.value);
 
         const res = await fetch(`/api/stock-out?${params.toString()}`);
         if (!res.ok) throw new Error("Gagal ambil data");
@@ -134,7 +163,7 @@ async function fetchData(page = 1) {
     }
 }
 
-watch(searchQuery, () => {
+watch([searchQuery, dateFrom, dateTo], () => {
     if (searchDebounce) clearTimeout(searchDebounce);
     searchDebounce = setTimeout(() => fetchData(1), 400);
 });
@@ -189,6 +218,21 @@ async function deleteItem(item: StockOutItem) {
     } catch (e) {
         showToast("error", "Gagal menghapus data.");
     }
+}
+
+function exportStockOut(format: "excel" | "csv" | "pdf") {
+    const params = new URLSearchParams();
+    if (searchQuery.value) params.set("search", searchQuery.value);
+    if (dateFrom.value) params.set("date_from", dateFrom.value);
+    if (dateTo.value) params.set("date_to", dateTo.value);
+
+    const url = `/api/stock-out/export-${format}?${params.toString()}`;
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
 }
 
 // ---- Import dengan preview ----
@@ -571,18 +615,69 @@ onMounted(() => {
             <div
                 class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-5"
             >
-                <div
-                    class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4"
-                >
-                    <h2 class="text-sm font-semibold text-gray-900">
-                        Riwayat Stok Keluar
-                    </h2>
-                    <input
-                        v-model="searchQuery"
-                        type="text"
-                        placeholder="Cari SKU / nama produk..."
-                        class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-full sm:w-56 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
+                <div class="flex flex-col gap-3 mb-4">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <h2 class="text-sm font-semibold text-gray-900">
+                            Riwayat Stok Keluar
+                        </h2>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <input
+                                v-model="searchQuery"
+                                type="text"
+                                placeholder="Cari SKU / nama produk..."
+                                class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-full sm:w-48 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            />
+                            <button
+                                @click="exportStockOut('excel')"
+                                type="button"
+                                title="Download format Excel (.xlsx) dengan styling & ringkasan"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 rounded-lg transition shadow-sm"
+                            >
+                                <FileSpreadsheet class="w-3.5 h-3.5 text-emerald-700" />
+                                <span>Export Excel (.xlsx)</span>
+                            </button>
+                            <button
+                                @click="exportStockOut('pdf')"
+                                type="button"
+                                title="Download format PDF (Cetak)"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition shadow-sm"
+                            >
+                                <FileText class="w-3.5 h-3.5 text-rose-600" />
+                                <span>Export PDF</span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Date filter row -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="flex items-center gap-1.5">
+                            <input
+                                v-model="dateFrom"
+                                type="date"
+                                class="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                title="Dari tanggal"
+                            />
+                            <span class="text-gray-400 text-xs">—</span>
+                            <input
+                                v-model="dateTo"
+                                type="date"
+                                class="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                title="Sampai tanggal"
+                            />
+                        </div>
+                        <button
+                            v-for="r in presetRanges"
+                            :key="r.days"
+                            @click="applyPreset(r.days)"
+                            type="button"
+                            class="px-2 py-1 text-xs border border-gray-200 rounded-md hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700 text-gray-600 transition"
+                        >{{ r.label }}</button>
+                        <button
+                            v-if="dateFrom || dateTo"
+                            @click="clearDateFilter"
+                            type="button"
+                            class="px-2 py-1 text-xs text-gray-400 hover:text-gray-600 underline"
+                        >Reset</button>
+                    </div>
                 </div>
 
                 <p
