@@ -12,6 +12,7 @@ interface RestockItem {
     Bulan: string;
     'Tanggal Kirim': string;
     Warehouse: string;
+    SKU: string | null;
     'Nama Produk': string;
     QTY: number;
     Status: string;
@@ -515,6 +516,7 @@ onMounted(() => {
                                     <th class="text-left px-3 py-2 font-semibold">Bulan</th>
                                     <th class="text-left px-3 py-2 font-semibold">Tanggal Kirim</th>
                                     <th class="text-left px-3 py-2 font-semibold">Warehouse</th>
+                                    <th class="text-left px-3 py-2 font-semibold">SKU</th>
                                     <th class="text-left px-3 py-2 font-semibold">Nama Produk</th>
                                     <th class="text-left px-3 py-2 font-semibold">Qty</th>
                                     <th class="text-left px-3 py-2 font-semibold">Status</th>
@@ -527,6 +529,7 @@ onMounted(() => {
                                     <td data-label="Bulan" data-hide-mobile class="px-3 py-2">{{ item.Bulan }}</td>
                                     <td data-label="Tanggal Kirim" class="px-3 py-2">{{ item['Tanggal Kirim'] }}</td>
                                     <td data-label="Warehouse" class="px-3 py-2">{{ item.Warehouse }}</td>
+                                    <td data-label="SKU" class="px-3 py-2 font-mono text-xs">{{ item['SKU'] || '-' }}</td>
                                     <td data-label="Nama Produk" class="px-3 py-2">{{ item['Nama Produk'] }}</td>
                                     <td data-label="Qty" class="px-3 py-2">{{ item.QTY }}</td>
                                     <td data-label="Status" class="px-3 py-2">

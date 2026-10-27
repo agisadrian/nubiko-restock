@@ -66,6 +66,7 @@ class RestockController extends Controller
                 'Bulan' => Carbon::parse($item->tanggal_kirim)->translatedFormat('F'),
                 'Tanggal Kirim' => $item->tanggal_kirim->format('Y-m-d'),
                 'Warehouse' => $item->kota_asal_gudang,
+                'SKU' => $item->sku,
                 'Nama Produk' => $item->nama_produk,
                 'QTY' => $item->qty,
                 'Status' => $item->status === 'sudah' ? 'Sudah Inbound' : 'Belum Inbound',
@@ -91,6 +92,8 @@ class RestockController extends Controller
             'qty' => 'required|integer|min:1',
             'status' => 'required|in:sudah,belum',
         ]);
+
+        $validated['sku'] = \App\Models\Product::where('nama_produk', $validated['nama_produk'])->value('sku');
 
         Restock::create($validated);
 
@@ -294,7 +297,10 @@ class RestockController extends Controller
             }
         }
 
+       $skuMap = \App\Models\Product::pluck('sku', 'nama_produk');
+
         foreach ($validated['rows'] as $row) {
+            $row['sku'] = $skuMap[$row['nama_produk']] ?? null;
             Restock::create($row);
         }
 
