@@ -231,11 +231,11 @@ class RestockController extends Controller
             if (empty($tanggalFormatted)) $errors[] = 'Tanggal Kirim kosong/tidak valid';
             if (empty($kota)) $errors[] = 'Warehouse kosong';
             if (empty($nama)) $errors[] = 'Nama Produk kosong';
-            if (!empty($nama) && !\App\Models\Product::where('nama_produk', $nama)->exists()) {
-                $errors[] = 'Nama Produk belum terdaftar di Master Produk';
-            }
             if ($qty === null || $qty === '' || !is_numeric($qty)) $errors[] = 'Qty kosong/tidak valid';
             if (empty($statusNormalized)) $errors[] = 'Status kosong/tidak dikenali';
+
+            // Tandai produk yang belum ada di master (bukan error, tapi akan auto-didaftarkan)
+            $produkBaru = !empty($nama) && !\App\Models\Product::where('nama_produk', $nama)->exists();
 
             $preview[] = [
                 'tanggal_kirim' => $tanggalFormatted,
@@ -245,6 +245,7 @@ class RestockController extends Controller
                 'status' => $statusNormalized,
                 'errors' => $errors,
                 'valid' => count($errors) === 0,
+                'produk_baru' => $produkBaru,
             ];
         }
 
@@ -257,16 +258,51 @@ class RestockController extends Controller
             'rows' => 'required|array|min:1',
             'rows.*.tanggal_kirim' => 'required|date',
             'rows.*.kota_asal_gudang' => 'required|string',
-            'rows.*.nama_produk' => 'required|string|exists:products,nama_produk',
+            'rows.*.nama_produk' => 'required|string',
             'rows.*.qty' => 'required|integer|min:1',
             'rows.*.status' => 'required|in:sudah,belum',
         ]);
+
+        // Auto-daftarkan produk yang belum ada di master produk
+        $existingNames = \App\Models\Product::pluck('nama_produk')->toArray();
+        $allNamaFromRows = collect($validated['rows'])->pluck('nama_produk')->unique()->values();
+        $newNames = $allNamaFromRows->diff($existingNames)->values();
+
+        if ($newNames->count() > 0) {
+            $lastNumber = \App\Models\Product::where('sku', 'like', 'AUTO-%')
+                ->get()
+                ->map(fn($p) => (int) str_replace('AUTO-', '', $p->sku))
+                ->max() ?? 0;
+
+            $now = now();
+            $newRows = [];
+            foreach ($newNames as $nama) {
+                $lastNumber++;
+                $newRows[] = [
+                    'sku'          => 'AUTO-' . str_pad($lastNumber, 4, '0', STR_PAD_LEFT),
+                    'nama_produk'  => $nama,
+                    'kategori'     => null,
+                    'harga'        => 0,
+                    'stok_minimum' => 10,
+                    'created_at'   => $now,
+                    'updated_at'   => $now,
+                ];
+            }
+
+            foreach (array_chunk($newRows, 100) as $chunk) {
+                \App\Models\Product::insert($chunk);
+            }
+        }
 
         foreach ($validated['rows'] as $row) {
             Restock::create($row);
         }
 
-        return response()->json(['message' => 'Import berhasil', 'count' => count($validated['rows'])]);
+        return response()->json([
+            'message'       => 'Import berhasil',
+            'count'         => count($validated['rows']),
+            'produk_baru'   => $newNames->count(),
+        ]);
     }
 
     public function exportCsv(Request $request)

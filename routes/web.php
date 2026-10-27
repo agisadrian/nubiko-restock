@@ -58,6 +58,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/products/{id}', [ProductController::class, 'update']);
     Route::delete('/products/{id}', [ProductController::class, 'destroy'])->middleware('admin');
     Route::post('/products/generate-from-restock', [ProductController::class, 'generateFromRestock']);
+    Route::post('/products/import', [ProductController::class, 'import']);
     });
 
         Route::get('/products/options', [ProductController::class, 'options']);

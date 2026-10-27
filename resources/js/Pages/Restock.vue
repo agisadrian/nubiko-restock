@@ -32,6 +32,7 @@ interface PreviewRow {
     status: string | null;
     errors: string[];
     valid: boolean;
+    produk_baru?: boolean;
 }
 
 function getCsrfToken(): string {
@@ -227,6 +228,10 @@ const importedCount = ref(0);
 
 const validRowsCount = computed(() => previewRows.value.filter(r => r.valid).length);
 const invalidRowsCount = computed(() => previewRows.value.filter(r => !r.valid).length);
+const newProdukCount = computed(() => {
+    const seen = new Set<string>();
+    return previewRows.value.filter(r => r.valid && r.produk_baru && r.nama_produk && !seen.has(r.nama_produk) && seen.add(r.nama_produk)).length;
+});
 
 async function handleImport(event: Event) {
     const target = event.target as HTMLInputElement;
@@ -560,6 +565,7 @@ onMounted(() => {
                     <h2 class="text-base font-semibold text-gray-900">Preview Import</h2>
                     <p class="text-sm text-gray-500 mt-1">
                         <span class="text-emerald-600 font-medium">{{ validRowsCount }} baris valid</span>
+                        <span v-if="newProdukCount > 0" class="text-blue-600 font-medium"> · {{ newProdukCount }} produk baru akan otomatis didaftarkan</span>
                         <span v-if="invalidRowsCount > 0" class="text-red-600 font-medium"> · {{ invalidRowsCount }} baris bermasalah</span>
                     </p>
                 </div>
@@ -588,8 +594,9 @@ onMounted(() => {
                                     <td class="px-2 py-1.5">{{ row.qty ?? '-' }}</td>
                                     <td class="px-2 py-1.5">{{ row.status || '-' }}</td>
                                     <td class="px-2 py-1.5">
-                                        <span v-if="row.valid" class="text-emerald-600">✓ Valid</span>
-                                        <span v-else class="text-red-600">{{ row.errors.join(', ') }}</span>
+                                        <span v-if="row.errors.length > 0" class="text-red-600">{{ row.errors.join(', ') }}</span>
+                                        <span v-else-if="row.produk_baru" class="inline-flex items-center gap-1 text-blue-600 font-medium">✦ Produk Baru <span class="text-blue-400 font-normal">(auto-daftar)</span></span>
+                                        <span v-else class="text-emerald-600">✓ Valid</span>
                                     </td>
                                 </tr>
                             </tbody>
