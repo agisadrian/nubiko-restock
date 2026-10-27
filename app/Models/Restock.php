@@ -9,6 +9,7 @@ class Restock extends Model
     protected $fillable = [
         'tanggal_kirim',
         'kota_asal_gudang',
+        'sku',
         'nama_produk',
         'qty',
         'status',
