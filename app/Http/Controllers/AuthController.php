@@ -47,8 +47,7 @@ class AuthController extends Controller
             'status' => 'pending',
         ]);
 
-        return redirect('/login')
-            ->with('registered', true)
+        return redirect('/register')
             ->withCookie(cookie('nb_registered', (string) $user->id, 60 * 24 * 365));
     }
 
