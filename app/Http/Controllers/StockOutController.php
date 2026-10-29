@@ -49,8 +49,8 @@ class StockOutController extends Controller
         $query = $this->buildQuery($request);
 
         $perPage = 25;
-        $paginated = $query->orderByDesc('tanggal_keluar')->paginate($perPage);
-
+        $paginated = $query->orderBy('tanggal_keluar')->orderBy('id')->paginate($perPage);
+        
         $data = collect($paginated->items())->values()->map(function ($item, $index) use ($paginated) {
             $globalNo = ($paginated->currentPage() - 1) * $paginated->perPage() + $index + 1;
             return [
