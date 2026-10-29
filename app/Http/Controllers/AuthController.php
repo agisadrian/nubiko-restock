@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use App\Models\User;
 
@@ -15,20 +16,30 @@ class AuthController extends Controller
         return Inertia::render('Login');
     }
 
-    public function showRegister()
+    public function showRegister(Request $request)
     {
-        return Inertia::render('Register');
+        $existing = $this->registeredUserFromCookie($request);
+
+        return Inertia::render('Register', [
+            'registration_status' => $existing?->status,
+        ]);
     }
 
     public function register(Request $request)
     {
+        if ($this->registeredUserFromCookie($request)) {
+            throw ValidationException::withMessages([
+                'register' => 'Browser ini sudah pernah dipakai untuk mendaftar.',
+            ]);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:6|confirmed',
         ]);
 
-        User::create([
+        $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
@@ -36,7 +47,9 @@ class AuthController extends Controller
             'status' => 'pending',
         ]);
 
-        return redirect('/login')->with('registered', true);
+        return redirect('/login')
+            ->with('registered', true)
+            ->withCookie(cookie('nb_registered', (string) $user->id, 60 * 24 * 365));
     }
 
     public function login(Request $request)
@@ -71,5 +84,19 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect('/login');
+    }
+
+    private function registeredUserFromCookie(Request $request): ?User
+    {
+        $id = $request->cookie('nb_registered');
+
+        if (!$id || !ctype_digit((string) $id)) {
+            return null;
+        }
+
+        $user = User::find((int) $id);
+
+        // Akun yang dihapus atau ditolak admin tidak lagi memblokir browser ini
+        return ($user && $user->status !== 'rejected') ? $user : null;
     }
 }
